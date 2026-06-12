@@ -2,7 +2,7 @@
 
 import { useRef } from 'react'
 import Link from 'next/link'
-import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion'
+import { motion, useMotionValue, useTransform, useSpring, Variants } from 'framer-motion'
 import {
   ArrowRight,
   Play,
@@ -111,7 +111,7 @@ function FloatingCard3D() {
   )
 }
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -119,7 +119,7 @@ const staggerContainer = {
   },
 }
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 30 },
   show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
 }
