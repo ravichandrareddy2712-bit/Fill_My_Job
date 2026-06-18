@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, Space_Grotesk } from 'next/font/google'
 import './globals.css'
+import { FileProvider } from '@/context/FileContext'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -37,7 +38,9 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
       </head>
       <body className="noise antialiased">
-        {children}
+        <FileProvider>
+          {children}
+        </FileProvider>
       </body>
     </html>
   )

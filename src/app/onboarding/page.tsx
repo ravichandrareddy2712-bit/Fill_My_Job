@@ -3,90 +3,31 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   BrainCircuit, User, Upload, Briefcase, MapPin,
   ArrowRight, ArrowLeft, Check, CloudUpload, X, Plus
 } from 'lucide-react'
 
 const steps = [
-  { id: 1, title: 'Personal Info', icon: User, description: 'Tell us about yourself' },
-  { id: 2, title: 'Upload Documents', icon: Upload, description: 'Resume & cover letter' },
-  { id: 3, title: 'Skills & Experience', icon: Briefcase, description: 'What you bring to the table' },
-  { id: 4, title: 'Job Preferences', icon: MapPin, description: 'Your ideal role' },
+  { id: 1, title: 'Skills & Experience', icon: Briefcase, description: 'What you bring to the table' },
+  { id: 2, title: 'Job Preferences', icon: MapPin, description: 'Your ideal role' },
 ]
 
-function UploadBox({
-  label, accept, file, onFile, onClear
-}: {
-  label: string
-  accept: string
-  file: File | null
-  onFile: (f: File) => void
-  onClear: () => void
-}) {
-  const [dragging, setDragging] = useState(false)
-
-  return (
-    <div
-      className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 cursor-pointer ${
-        dragging ? 'border-indigo-400 bg-indigo-500/10' : 'border-white/10 bg-white/3 hover:border-white/20 hover:bg-white/5'
-      } ${file ? 'border-emerald-400/40 bg-emerald-500/5' : ''}`}
-      onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={(e) => {
-        e.preventDefault()
-        setDragging(false)
-        const f = e.dataTransfer.files[0]
-        if (f) onFile(f)
-      }}
-      onClick={() => !file && document.getElementById(`upload-${label}`)?.click()}
-    >
-      <input
-        id={`upload-${label}`}
-        type="file"
-        accept={accept}
-        className="hidden"
-        onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
-      />
-      {file ? (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-              <Check className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div className="text-left">
-              <p className="text-white text-sm font-medium">{file.name}</p>
-              <p className="text-[#64748b] text-xs">{(file.size / 1024).toFixed(1)} KB</p>
-            </div>
-          </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); onClear() }}
-            className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[#64748b] hover:text-white hover:bg-white/20 transition-all"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      ) : (
-        <>
-          <CloudUpload className="w-10 h-10 text-[#64748b] mx-auto mb-3" />
-          <p className="text-white font-medium text-sm mb-1">{label}</p>
-          <p className="text-[#64748b] text-xs">Drag & drop or click to browse (PDF, max 10MB)</p>
-        </>
-      )}
-    </div>
-  )
-}
+// Removed UploadBox component
 
 const skillSuggestions = ['React', 'TypeScript', 'Python', 'Node.js', 'SQL', 'AWS', 'Docker', 'Figma', 'Product Management', 'Data Analysis', 'Machine Learning', 'Leadership']
 const roleOptions = ['Software Engineer', 'Product Manager', 'Data Scientist', 'UX Designer', 'Marketing Manager', 'DevOps Engineer', 'Business Analyst', 'Sales Engineer']
 const locationOptions = ['Remote', 'New York', 'San Francisco', 'London', 'Berlin', 'Singapore', 'Toronto', 'Austin']
 
+import { useFileContext } from '@/context/FileContext'
+
 export default function OnboardingPage() {
+  const router = useRouter()
+  const { resumeFile } = useFileContext()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
-    firstName: '', lastName: '', email: '', phone: '',
-    resume: null as File | null,
-    coverLetter: null as File | null,
     skills: [] as string[],
     experience: '2-5',
     roles: [] as string[],
@@ -95,7 +36,7 @@ export default function OnboardingPage() {
   const [skillInput, setSkillInput] = useState('')
   const [direction, setDirection] = useState(1)
 
-  const goNext = () => { setDirection(1); setStep((s) => Math.min(s + 1, 4)) }
+  const goNext = () => { setDirection(1); setStep((s) => Math.min(s + 1, 2)) }
   const goPrev = () => { setDirection(-1); setStep((s) => Math.max(s - 1, 1)) }
 
   const toggleSkill = (s: string) => {
@@ -123,6 +64,29 @@ export default function OnboardingPage() {
     if (skillInput.trim() && !form.skills.includes(skillInput.trim())) {
       setForm(f => ({ ...f, skills: [...f.skills, skillInput.trim()] }))
       setSkillInput('')
+    }
+  }
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true)
+    try {
+      const formData = new FormData()
+      formData.append('skills', JSON.stringify(form.skills))
+      formData.append('experience', form.experience)
+      formData.append('roles', JSON.stringify(form.roles))
+      formData.append('locations', JSON.stringify(form.locations))
+      if (resumeFile) formData.append('resume', resumeFile)
+
+      const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL
+      if (webhookUrl) {
+        await fetch(webhookUrl, { method: 'POST', body: formData })
+      }
+      
+      router.push('/dashboard')
+    } catch (error) {
+      console.error("Error submitting form", error)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -172,7 +136,7 @@ export default function OnboardingPage() {
             <div className="h-1 bg-white/5 rounded-full overflow-hidden">
               <motion.div
                 className="h-full gradient-primary rounded-full"
-                animate={{ width: `${((step - 1) / 3) * 100}%` }}
+                animate={{ width: `${((step - 1) / 1) * 100}%` }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               />
             </div>
@@ -190,69 +154,8 @@ export default function OnboardingPage() {
                 exit="exit"
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
               >
-                {/* Step 1: Personal Info */}
+                {/* Step 1: Skills */}
                 {step === 1 && (
-                  <div>
-                    <h2 className="font-display font-bold text-2xl text-white mb-1">Personal Information</h2>
-                    <p className="text-[#64748b] text-sm mb-6">Let&apos;s get to know you better.</p>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-[#94a3b8] text-xs font-medium mb-1.5 block">First Name</label>
-                          <input id="first-name" className="input-glass" placeholder="John" value={form.firstName}
-                            onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} />
-                        </div>
-                        <div>
-                          <label className="text-[#94a3b8] text-xs font-medium mb-1.5 block">Last Name</label>
-                          <input id="last-name" className="input-glass" placeholder="Doe" value={form.lastName}
-                            onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-[#94a3b8] text-xs font-medium mb-1.5 block">Email Address</label>
-                        <input id="email" type="email" className="input-glass" placeholder="john@example.com" value={form.email}
-                          onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-                      </div>
-                      <div>
-                        <label className="text-[#94a3b8] text-xs font-medium mb-1.5 block">Phone Number</label>
-                        <input id="phone" type="tel" className="input-glass" placeholder="+1 (555) 000-0000" value={form.phone}
-                          onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 2: Upload */}
-                {step === 2 && (
-                  <div>
-                    <h2 className="font-display font-bold text-2xl text-white mb-1">Upload Documents</h2>
-                    <p className="text-[#64748b] text-sm mb-6">Your resume is required. Cover letter is optional.</p>
-                    <div className="space-y-4">
-                      <UploadBox
-                        label="Upload Resume (PDF) *"
-                        accept=".pdf"
-                        file={form.resume}
-                        onFile={(f) => setForm(x => ({ ...x, resume: f }))}
-                        onClear={() => setForm(x => ({ ...x, resume: null }))}
-                      />
-                      <UploadBox
-                        label="Upload Cover Letter (PDF) — optional"
-                        accept=".pdf"
-                        file={form.coverLetter}
-                        onFile={(f) => setForm(x => ({ ...x, coverLetter: f }))}
-                        onClear={() => setForm(x => ({ ...x, coverLetter: null }))}
-                      />
-                      <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-                        <p className="text-indigo-300 text-xs">
-                          🔒 Your files are encrypted and never shared. Our AI will extract skills automatically.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 3: Skills */}
-                {step === 3 && (
                   <div>
                     <h2 className="font-display font-bold text-2xl text-white mb-1">Skills & Experience</h2>
                     <p className="text-[#64748b] text-sm mb-6">Select your skills or add custom ones.</p>
@@ -311,8 +214,8 @@ export default function OnboardingPage() {
                   </div>
                 )}
 
-                {/* Step 4: Preferences */}
-                {step === 4 && (
+                {/* Step 2: Preferences */}
+                {step === 2 && (
                   <div>
                     <h2 className="font-display font-bold text-2xl text-white mb-1">Job Preferences</h2>
                     <p className="text-[#64748b] text-sm mb-6">What roles and locations are you targeting?</p>
@@ -359,7 +262,7 @@ export default function OnboardingPage() {
                     <div className="p-4 rounded-2xl glass border border-indigo-500/20">
                       <p className="text-indigo-300 text-xs font-semibold mb-2">Summary</p>
                       <div className="text-[#94a3b8] text-xs space-y-1">
-                        <p>👤 {form.firstName || 'Name'} {form.lastName} · {form.email || 'email'}</p>
+                        <p>📄 {resumeFile ? resumeFile.name : 'Resume Uploaded'}</p>
                         <p>💼 {form.experience} years experience · {form.skills.length} skills</p>
                         <p>🎯 {form.roles.length || 0} roles · {form.locations.length || 0} locations</p>
                       </div>
@@ -380,17 +283,23 @@ export default function OnboardingPage() {
                 Back
               </button>
 
-              {step < 4 ? (
+              {step < 2 ? (
                 <button onClick={goNext} className="btn-primary py-2.5 px-6">
                   Continue
                   <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
-                <Link href="/dashboard" id="onboarding-finish" className="btn-primary py-2.5 px-6">
-                  <Check className="w-4 h-4" />
-                  Go to Dashboard
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+                <button onClick={handleSubmit} disabled={isSubmitting} id="onboarding-finish" className="btn-primary py-2.5 px-6">
+                  {isSubmitting ? (
+                    'Submitting...'
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Go to Dashboard
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
               )}
             </div>
           </div>

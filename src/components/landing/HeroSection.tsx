@@ -1,7 +1,8 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion, useMotionValue, useTransform, useSpring, Variants } from 'framer-motion'
 import {
   ArrowRight,
@@ -15,6 +16,7 @@ import {
   TrendingUp,
   Briefcase,
 } from 'lucide-react'
+import { useFileContext } from '@/context/FileContext'
 
 const floatingBadges = [
   { icon: CheckCircle2, text: 'Resume Parsed', color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/20', x: '-8%', y: '20%' },
@@ -125,6 +127,21 @@ const fadeUp: Variants = {
 }
 
 export default function HeroSection() {
+  const router = useRouter()
+  const { setResumeFile } = useFileContext()
+
+  useEffect(() => {
+    const handleFileDrop = (e: any) => {
+      if (e.detail) {
+        setResumeFile(e.detail)
+        router.push('/onboarding')
+      }
+    }
+    const uploadEl = document.getElementById('hero-dropzone')
+    uploadEl?.addEventListener('file-drop', handleFileDrop)
+    return () => uploadEl?.removeEventListener('file-drop', handleFileDrop)
+  }, [router, setResumeFile])
+
   return (
     <section className="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden grid-pattern">
       {/* Background orbs */}
@@ -172,19 +189,42 @@ export default function HeroSection() {
               Upload your resume, extract skills, match jobs, and track applications — all in one premium AI-powered platform.
             </motion.p>
 
-            {/* CTAs */}
-            <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-4 justify-center lg:justify-start">
-              <Link href="/onboarding" id="hero-get-started" className="btn-primary text-base py-3.5 px-7 animate-pulse-glow">
-                <Sparkles className="w-5 h-5" />
-                Get Started Free
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              <button id="hero-see-demo" className="btn-secondary text-base py-3.5 px-7 flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full gradient-primary flex items-center justify-center">
-                  <Play className="w-3 h-3 text-white fill-white" />
-                </div>
-                See Demo
-              </button>
+            {/* CTAs - Replaced with Dropzone */}
+            <motion.div variants={fadeUp} className="mt-8">
+              <div
+                className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 cursor-pointer max-w-md mx-auto lg:mx-0 ${
+                  false ? 'border-indigo-400 bg-indigo-500/10' : 'border-white/10 bg-white/3 hover:border-white/20 hover:bg-white/5'
+                }`}
+                id="hero-dropzone"
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-indigo-400', 'bg-indigo-500/10') }}
+                onDragLeave={(e) => { e.currentTarget.classList.remove('border-indigo-400', 'bg-indigo-500/10') }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  e.currentTarget.classList.remove('border-indigo-400', 'bg-indigo-500/10')
+                  const f = e.dataTransfer.files[0]
+                  if (f) {
+                    const el = document.getElementById('hero-upload') as HTMLInputElement
+                    if(el && el.parentElement) {
+                       el.parentElement.dispatchEvent(new CustomEvent('file-drop', { detail: f }))
+                    }
+                  }
+                }}
+                onClick={() => document.getElementById('hero-upload')?.click()}
+              >
+                <input
+                  id="hero-upload"
+                  type="file"
+                  accept=".pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) e.target.parentElement?.dispatchEvent(new CustomEvent('file-drop', { detail: f }))
+                  }}
+                />
+                <Upload className="w-10 h-10 text-[#64748b] mx-auto mb-3" />
+                <p className="text-white font-medium text-lg mb-1">Upload Resume to Start</p>
+                <p className="text-[#64748b] text-sm">Drag & drop or click to browse (PDF only)</p>
+              </div>
             </motion.div>
 
             {/* Social proof */}
