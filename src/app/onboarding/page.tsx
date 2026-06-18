@@ -16,9 +16,8 @@ const steps = [
 
 // Removed UploadBox component
 
-const skillSuggestions = ['React', 'TypeScript', 'Python', 'Node.js', 'SQL', 'AWS', 'Docker', 'Figma', 'Product Management', 'Data Analysis', 'Machine Learning', 'Leadership']
-const roleOptions = ['Software Engineer', 'Product Manager', 'Data Scientist', 'UX Designer', 'Marketing Manager', 'DevOps Engineer', 'Business Analyst', 'Sales Engineer']
-const locationOptions = ['Remote', 'New York', 'San Francisco', 'London', 'Berlin', 'Singapore', 'Toronto', 'Austin']
+const roleOptions = ['Internship', 'Full-time Job', 'Part-time Job', 'Software Engineer', 'Product Manager', 'Data Scientist', 'UX Designer', 'Marketing Manager']
+const locationOptions = ['India', 'Remote', 'United States', 'United Kingdom', 'Germany', 'Singapore', 'Canada', 'Australia']
 
 import { useFileContext } from '@/context/FileContext'
 
@@ -28,23 +27,16 @@ export default function OnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
-    skills: [] as string[],
-    experience: '2-5',
+    experience: 'Fresher',
     roles: [] as string[],
     locations: [] as string[],
   })
-  const [skillInput, setSkillInput] = useState('')
   const [direction, setDirection] = useState(1)
 
   const goNext = () => { setDirection(1); setStep((s) => Math.min(s + 1, 2)) }
   const goPrev = () => { setDirection(-1); setStep((s) => Math.max(s - 1, 1)) }
 
-  const toggleSkill = (s: string) => {
-    setForm(f => ({
-      ...f,
-      skills: f.skills.includes(s) ? f.skills.filter(x => x !== s) : [...f.skills, s]
-    }))
-  }
+
 
   const toggleRole = (r: string) => {
     setForm(f => ({
@@ -60,24 +52,18 @@ export default function OnboardingPage() {
     }))
   }
 
-  const addCustomSkill = () => {
-    if (skillInput.trim() && !form.skills.includes(skillInput.trim())) {
-      setForm(f => ({ ...f, skills: [...f.skills, skillInput.trim()] }))
-      setSkillInput('')
-    }
-  }
+
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
       const formData = new FormData()
-      formData.append('skills', JSON.stringify(form.skills))
       formData.append('experience', form.experience)
       formData.append('roles', JSON.stringify(form.roles))
       formData.append('locations', JSON.stringify(form.locations))
       if (resumeFile) formData.append('resume', resumeFile)
 
-      const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL
+      const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'http://localhost:5678/webhook-test/resume-upload'
       if (webhookUrl) {
         await fetch(webhookUrl, { method: 'POST', body: formData })
       }
@@ -157,46 +143,16 @@ export default function OnboardingPage() {
                 {/* Step 1: Skills */}
                 {step === 1 && (
                   <div>
-                    <h2 className="font-display font-bold text-2xl text-white mb-1">Skills & Experience</h2>
-                    <p className="text-[#64748b] text-sm mb-6">Select your skills or add custom ones.</p>
+                    <h2 className="font-display font-bold text-2xl text-white mb-1">Experience</h2>
+                    <p className="text-[#64748b] text-sm mb-6">Select your years of experience.</p>
 
-                    {/* Skills */}
-                    <div className="mb-5">
-                      <label className="text-[#94a3b8] text-xs font-medium mb-2 block">Skills</label>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {skillSuggestions.map((s) => (
-                          <button
-                            key={s}
-                            onClick={() => toggleSkill(s)}
-                            className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
-                              form.skills.includes(s)
-                                ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
-                                : 'bg-white/3 border-white/10 text-[#64748b] hover:border-white/20 hover:text-white'
-                            }`}
-                          >
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          className="input-glass text-sm flex-1"
-                          placeholder="Add custom skill..."
-                          value={skillInput}
-                          onChange={e => setSkillInput(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && addCustomSkill()}
-                        />
-                        <button onClick={addCustomSkill} className="btn-primary py-2.5 px-4">
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
+
 
                     {/* Experience */}
                     <div>
                       <label className="text-[#94a3b8] text-xs font-medium mb-2 block">Years of Experience</label>
                       <div className="grid grid-cols-4 gap-2">
-                        {['0-1', '1-2', '2-5', '5-10', '10+'].map((lvl) => (
+                        {['Fresher', '0-1', '1-2', '2-5', '5-10', '10+'].map((lvl) => (
                           <button
                             key={lvl}
                             onClick={() => setForm(f => ({ ...f, experience: lvl }))}
@@ -206,7 +162,7 @@ export default function OnboardingPage() {
                                 : 'bg-white/3 border-white/10 text-[#64748b] hover:border-white/20 hover:text-white'
                             }`}
                           >
-                            {lvl} yrs
+                            {lvl === 'Fresher' ? 'Fresher' : `${lvl} yrs`}
                           </button>
                         ))}
                       </div>
@@ -263,7 +219,7 @@ export default function OnboardingPage() {
                       <p className="text-indigo-300 text-xs font-semibold mb-2">Summary</p>
                       <div className="text-[#94a3b8] text-xs space-y-1">
                         <p>📄 {resumeFile ? resumeFile.name : 'Resume Uploaded'}</p>
-                        <p>💼 {form.experience} years experience · {form.skills.length} skills</p>
+                        <p>💼 {form.experience} {form.experience === 'Fresher' ? '' : 'years '}experience</p>
                         <p>🎯 {form.roles.length || 0} roles · {form.locations.length || 0} locations</p>
                       </div>
                     </div>
