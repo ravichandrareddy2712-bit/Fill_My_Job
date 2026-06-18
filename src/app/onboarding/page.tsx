@@ -65,12 +65,16 @@ export default function OnboardingPage() {
 
       const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'http://localhost:5678/webhook-test/autoapply-start'
       if (webhookUrl) {
-        await fetch(webhookUrl, { method: 'POST', body: formData })
+        const response = await fetch(webhookUrl, { method: 'POST', body: formData })
+        if (!response.ok) {
+          throw new Error(`n8n responded with status: ${response.status}`)
+        }
       }
       
       router.push('/dashboard')
     } catch (error) {
       console.error("Error submitting form", error)
+      alert("Failed to connect to n8n! Please make sure you clicked 'Execute Workflow' in n8n first so it is listening for the webhook.")
     } finally {
       setIsSubmitting(false)
     }
