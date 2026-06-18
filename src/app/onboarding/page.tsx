@@ -63,7 +63,7 @@ export default function OnboardingPage() {
       formData.append('locations', JSON.stringify(form.locations))
       if (resumeFile) formData.append('resume', resumeFile)
 
-      const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'http://localhost:5678/webhook-test/resume-upload'
+      const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'http://localhost:5678/webhook-test/autoapply-start'
       if (webhookUrl) {
         await fetch(webhookUrl, { method: 'POST', body: formData })
       }
