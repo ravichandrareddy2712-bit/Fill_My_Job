@@ -63,7 +63,7 @@ export default function OnboardingPage() {
       formData.append('locations', JSON.stringify(form.locations))
       if (resumeFile) formData.append('resume', resumeFile)
 
-      const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://valtooy.app.n8n.cloud/webhook-test/autoapply-start'
+      const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://valtooy.app.n8n.cloud/webhook/autoapply-start'
       if (webhookUrl) {
         const response = await fetch(webhookUrl, { method: 'POST', body: formData })
         if (!response.ok) {
