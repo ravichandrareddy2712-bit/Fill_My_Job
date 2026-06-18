@@ -37,7 +37,7 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
       </head>
-      <body className="noise antialiased">
+      <body className="noise antialiased" suppressHydrationWarning>
         <FileProvider>
           {children}
         </FileProvider>
