@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/n8n-webhook',
-        destination: 'https://ramanreddy.app.n8n.cloud/webhook/autoapply-start',
+        destination: 'https://ramanreddy.app.n8n.cloud/webhook-test/autoapply-start',
       },
     ];
   },

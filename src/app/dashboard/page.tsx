@@ -128,25 +128,11 @@ export default function DashboardPage() {
         throw new Error(`Webhook responded with ${res.status}`)
       }
 
-      // Simulate pipeline progress (the actual workflow runs async in n8n)
-      setTimeout(() => {
-        setPipelineStage('scoring')
-        setPipelineMessage('AI is scoring job matches...')
-      }, 5000)
+      // We remove the fake simulated progress.
+      // The workflow is now running in n8n.
+      setPipelineStage('done')
+      setPipelineMessage('Pipeline triggered! Check n8n to see the live execution.')
 
-      setTimeout(() => {
-        setPipelineStage('applying')
-        setPipelineMessage('Auto-applying to matched jobs...')
-        setJobsFound(prev => prev + Math.floor(Math.random() * 12) + 5)
-      }, 12000)
-
-      setTimeout(() => {
-        setPipelineStage('done')
-        setPipelineMessage('Pipeline complete! Check your results.')
-        setApplicationsApplied(prev => prev + Math.floor(Math.random() * 4) + 1)
-        // Refresh extension tasks
-        getPendingTasks(sessionId).then(setExtensionTasks).catch(() => {})
-      }, 20000)
 
     } catch (err) {
       console.error('Failed to start scraping:', err)
