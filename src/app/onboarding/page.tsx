@@ -114,7 +114,7 @@ export default function OnboardingPage() {
         formData.append('resume', resumeFile)
         formData.append('session_id', sessionId)
 
-        const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL
+        const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://ramanreddy.app.n8n.cloud/webhook/autoapply-start'
         if (webhookUrl) {
           // Fire & forget — don't block redirect
           fetch(webhookUrl, { method: 'POST', body: formData }).catch(() => {})
