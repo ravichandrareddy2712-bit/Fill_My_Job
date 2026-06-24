@@ -130,8 +130,8 @@ export default function DashboardPage() {
 
       // We remove the fake simulated progress.
       // The workflow is now running in n8n.
-      setPipelineStage('done')
-      setPipelineMessage('Pipeline triggered! Check n8n to see the live execution.')
+      setPipelineStage('scraping')
+      setPipelineMessage('Pipeline running! Check n8n to see the live execution.')
 
 
     } catch (err) {
