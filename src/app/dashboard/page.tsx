@@ -100,7 +100,7 @@ export default function DashboardPage() {
     setPipelineMessage('Connecting to n8n workflow...')
 
     try {
-      const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://ramanreddy.app.n8n.cloud/webhook/autoapply-start'
+      const webhookUrl = '/api/n8n-webhook'
 
       const roles = JSON.parse(localStorage.getItem('fmj_roles') || '[]')
       const locations = JSON.parse(localStorage.getItem('fmj_locations') || '[]')
