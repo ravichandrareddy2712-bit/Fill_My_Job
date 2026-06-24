@@ -5,21 +5,19 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  BrainCircuit, User, Upload, Briefcase, MapPin,
-  ArrowRight, ArrowLeft, Check, CloudUpload, X, Plus
+  BrainCircuit, Briefcase, MapPin,
+  ArrowRight, ArrowLeft, Check
 } from 'lucide-react'
+import { useFileContext } from '@/context/FileContext'
+import { saveProfile } from '@/lib/supabase'
 
 const steps = [
   { id: 1, title: 'Skills & Experience', icon: Briefcase, description: 'What you bring to the table' },
   { id: 2, title: 'Job Preferences', icon: MapPin, description: 'Your ideal role' },
 ]
 
-// Removed UploadBox component
-
 const roleOptions = ['Internship', 'Full-time Job', 'Part-time Job', 'Software Engineer', 'Product Manager', 'Data Scientist', 'UX Designer', 'Marketing Manager']
 const locationOptions = ['India', 'Remote', 'United States', 'United Kingdom', 'Germany', 'Singapore', 'Canada', 'Australia']
-
-import { useFileContext } from '@/context/FileContext'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -36,8 +34,6 @@ export default function OnboardingPage() {
   const goNext = () => { setDirection(1); setStep((s) => Math.min(s + 1, 2)) }
   const goPrev = () => { setDirection(-1); setStep((s) => Math.max(s - 1, 1)) }
 
-
-
   const toggleRole = (r: string) => {
     setForm(f => ({
       ...f,
@@ -52,29 +48,83 @@ export default function OnboardingPage() {
     }))
   }
 
-
-
   const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
-      const formData = new FormData()
-      formData.append('experience', form.experience)
-      formData.append('roles', JSON.stringify(form.roles))
-      formData.append('locations', JSON.stringify(form.locations))
-      if (resumeFile) formData.append('resume', resumeFile)
+      // Generate a unique session ID
+      const sessionId = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 8)
 
-      const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://valtooy.app.n8n.cloud/webhook-test/autoapply-start'
-      if (webhookUrl) {
-        const response = await fetch(webhookUrl, { method: 'POST', body: formData })
-        if (!response.ok) {
-          throw new Error(`n8n responded with status: ${response.status}`)
+      // Generate search links from roles + locations
+      const searchLinks: string[] = []
+      const roles = form.roles.length > 0 ? form.roles : ['Software Engineer']
+      const locations = form.locations.length > 0 ? form.locations : ['Remote']
+      for (const role of roles) {
+        for (const loc of locations) {
+          const q = encodeURIComponent(role)
+          const l = encodeURIComponent(loc)
+          searchLinks.push(`https://in.indeed.com/jobs?q=${q}&l=${l}`)
+          const naukriLoc = loc.toLowerCase() === 'remote' ? 'remote' : loc.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+          searchLinks.push(`https://www.naukri.com/${naukriLoc}-jobs?k=${q}`)
         }
       }
-      
+
+      // Save profile to Supabase (NOT to n8n webhook)
+      const profileData = {
+        session_id: sessionId,
+        skills: form.roles,
+        experience: [],
+        search_links: searchLinks,
+        first_name: '',
+        last_name: '',
+        email: '',
+        mobile: '',
+        address: '',
+        linkedin_url: '',
+        portfolio_url: '',
+        current_ctc: '',
+        expected_ctc: '',
+        notice_period: form.experience,
+        willing_to_relocate: form.locations.some(l => l !== 'India'),
+        internships: [],
+        projects: [],
+        education: [],
+        certifications: [],
+        negative_preferences: {},
+        common_answers: {},
+      }
+
+      const saved = await saveProfile(profileData)
+      if (!saved) {
+        throw new Error('Failed to save profile to Supabase')
+      }
+
+      // Store session in localStorage for dashboard
+      localStorage.setItem('fmj_session_id', sessionId)
+      localStorage.setItem('fmj_roles', JSON.stringify(form.roles))
+      localStorage.setItem('fmj_locations', JSON.stringify(form.locations))
+      localStorage.setItem('fmj_experience', form.experience)
+      localStorage.setItem('fmj_onboarded', 'true')
+
+      // If resume file exists, also send it to n8n for AI extraction (fire & forget)
+      if (resumeFile) {
+        const formData = new FormData()
+        formData.append('experience', form.experience)
+        formData.append('roles', JSON.stringify(form.roles))
+        formData.append('locations', JSON.stringify(form.locations))
+        formData.append('resume', resumeFile)
+        formData.append('session_id', sessionId)
+
+        const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL
+        if (webhookUrl) {
+          // Fire & forget — don't block redirect
+          fetch(webhookUrl, { method: 'POST', body: formData }).catch(() => {})
+        }
+      }
+
       router.push('/dashboard')
     } catch (error) {
-      console.error("Error submitting form", error)
-      alert("Failed to connect to n8n! Please make sure you clicked 'Execute Workflow' in n8n first so it is listening for the webhook.")
+      console.error('Error during onboarding:', error)
+      alert('Failed to save your profile. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -98,7 +148,7 @@ export default function OnboardingPage() {
           </div>
           <span className="font-display font-bold text-white text-sm">FindMyJob.AI</span>
         </Link>
-        <span className="text-[#64748b] text-sm">Step {step} of 4</span>
+        <span className="text-[#64748b] text-sm">Step {step} of 2</span>
       </div>
 
       <div className="flex-1 flex items-center justify-center px-4 py-8 relative z-10">
@@ -149,8 +199,6 @@ export default function OnboardingPage() {
                   <div>
                     <h2 className="font-display font-bold text-2xl text-white mb-1">Experience</h2>
                     <p className="text-[#64748b] text-sm mb-6">Select your years of experience.</p>
-
-
 
                     {/* Experience */}
                     <div>
@@ -222,7 +270,7 @@ export default function OnboardingPage() {
                     <div className="p-4 rounded-2xl glass border border-indigo-500/20">
                       <p className="text-indigo-300 text-xs font-semibold mb-2">Summary</p>
                       <div className="text-[#94a3b8] text-xs space-y-1">
-                        <p>📄 {resumeFile ? resumeFile.name : 'Resume Uploaded'}</p>
+                        <p>📄 {resumeFile ? resumeFile.name : 'No resume (will use Supabase profile)'}</p>
                         <p>💼 {form.experience} {form.experience === 'Fresher' ? '' : 'years '}experience</p>
                         <p>🎯 {form.roles.length || 0} roles · {form.locations.length || 0} locations</p>
                       </div>
@@ -251,11 +299,14 @@ export default function OnboardingPage() {
               ) : (
                 <button onClick={handleSubmit} disabled={isSubmitting} id="onboarding-finish" className="btn-primary py-2.5 px-6">
                   {isSubmitting ? (
-                    'Submitting...'
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Saving...
+                    </span>
                   ) : (
                     <>
                       <Check className="w-4 h-4" />
-                      Go to Dashboard
+                      Save & Go to Dashboard
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
