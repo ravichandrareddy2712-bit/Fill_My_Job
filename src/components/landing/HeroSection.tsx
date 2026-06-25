@@ -285,6 +285,16 @@ export default function HeroSection() {
                   <p className="text-[#4b5563] text-xs mt-2">Your resume is never stored publicly</p>
                 </div>
               )}
+
+              {/* Add a manual entry button so users know there is a form! */}
+              {!isExtracting && (
+                <div className="mt-4 text-center max-w-md mx-auto lg:mx-0">
+                  <span className="text-[#4b5563] text-xs">Don't have a resume handy?</span>
+                  <Link href="/onboarding" className="block mt-2 text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors">
+                    Fill out your profile manually ➔
+                  </Link>
+                </div>
+              )}
             </motion.div>
 
             {/* Social proof */}
