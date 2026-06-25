@@ -406,3 +406,19 @@ body {
     linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
   background-size: 60px 60px;
 }
+
+ / *    % % %  A u t o f i l l   F i x   f o r   D a r k   T h e m e    % % % % % % % % % % % % % % % % % % % % % % % % %  * / 
+ i n p u t : - w e b k i t - a u t o f i l l , 
+ i n p u t : - w e b k i t - a u t o f i l l : h o v e r ,   
+ i n p u t : - w e b k i t - a u t o f i l l : f o c u s ,   
+ i n p u t : - w e b k i t - a u t o f i l l : a c t i v e , 
+ t e x t a r e a : - w e b k i t - a u t o f i l l , 
+ t e x t a r e a : - w e b k i t - a u t o f i l l : h o v e r , 
+ t e x t a r e a : - w e b k i t - a u t o f i l l : f o c u s , 
+ s e l e c t : - w e b k i t - a u t o f i l l , 
+ s e l e c t : - w e b k i t - a u t o f i l l : h o v e r , 
+ s e l e c t : - w e b k i t - a u t o f i l l : f o c u s   { 
+     - w e b k i t - t e x t - f i l l - c o l o r :   w h i t e   ! i m p o r t a n t ; 
+     t r a n s i t i o n :   b a c k g r o u n d - c o l o r   5 0 0 0 s   e a s e - i n - o u t   0 s ; 
+ }  
+ 
