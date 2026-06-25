@@ -32,10 +32,11 @@ const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Prefer not to say']
 const WORK_TYPE_OPTIONS = ['Remote', 'Hybrid', 'Onsite', 'Any']
 
 const steps = [
-  { id: 1, title: 'Personal Details', icon: User, description: 'Basic info about you' },
-  { id: 2, title: 'Target Roles', icon: Briefcase, description: 'What you\'re looking for' },
-  { id: 3, title: 'Experience & Projects', icon: BookOpen, description: 'Resume Details' },
-  { id: 4, title: 'Confirm & Q&A', icon: CheckCircle2, description: 'Review & common answers' },
+  { id: 1, title: 'Upload Resume', icon: Upload, description: 'Quick auto-fill' },
+  { id: 2, title: 'Personal Details', icon: User, description: 'Basic info about you' },
+  { id: 3, title: 'Target Roles', icon: Briefcase, description: 'What you\'re looking for' },
+  { id: 4, title: 'Experience & Projects', icon: BookOpen, description: 'Resume Details' },
+  { id: 5, title: 'Confirm & Q&A', icon: CheckCircle2, description: 'Review & common answers' },
 ]
 
 // ─── Field Component ──────────────────────────────────────────
@@ -447,7 +448,7 @@ export default function OnboardingPage() {
           </div>
           <span className="font-display font-bold text-white text-sm">FindMyJob.AI</span>
         </Link>
-        <span className="text-[#64748b] text-sm">Step {step} of 4</span>
+        <span className="text-[#64748b] text-sm">Step {step} of 5</span>
       </div>
 
       <div className="flex-1 flex items-start justify-center px-4 py-4 relative z-10">
