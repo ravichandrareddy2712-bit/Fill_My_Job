@@ -1,12 +1,11 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, useMotionValue, useTransform, useSpring, Variants } from 'framer-motion'
 import {
   ArrowRight,
-  Play,
   Sparkles,
   Upload,
   Brain,
@@ -15,6 +14,8 @@ import {
   CheckCircle2,
   TrendingUp,
   Briefcase,
+  Loader2,
+  FileText,
 } from 'lucide-react'
 import { useFileContext } from '@/context/FileContext'
 
@@ -129,18 +130,58 @@ const fadeUp: Variants = {
 export default function HeroSection() {
   const router = useRouter()
   const { setResumeFile } = useFileContext()
+  const [isDragging, setIsDragging] = useState(false)
+  const [isExtracting, setIsExtracting] = useState(false)
+  const [extractionStep, setExtractionStep] = useState('')
 
-  useEffect(() => {
-    const handleFileDrop = (e: any) => {
-      if (e.detail) {
-        setResumeFile(e.detail)
-        router.push('/onboarding')
-      }
+  const handleFile = async (file: File) => {
+    if (!file || file.type !== 'application/pdf') {
+      alert('Please upload a PDF file')
+      return
     }
-    const uploadEl = document.getElementById('hero-dropzone')
-    uploadEl?.addEventListener('file-drop', handleFileDrop)
-    return () => uploadEl?.removeEventListener('file-drop', handleFileDrop)
-  }, [router, setResumeFile])
+
+    setResumeFile(file)
+    setIsExtracting(true)
+    setExtractionStep('Reading your resume...')
+
+    try {
+      // Show progressive loading messages
+      const stepTimer1 = setTimeout(() => setExtractionStep('Extracting skills & experience...'), 1200)
+      const stepTimer2 = setTimeout(() => setExtractionStep('Building your profile...'), 2800)
+
+      const formData = new FormData()
+      formData.append('resume', file)
+
+      const res = await fetch('/api/extract-resume', {
+        method: 'POST',
+        body: formData,
+      })
+
+      clearTimeout(stepTimer1)
+      clearTimeout(stepTimer2)
+
+      if (res.ok) {
+        const extracted = await res.json()
+        // Store extracted data for onboarding pre-fill
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('fmj_extracted', JSON.stringify(extracted))
+        }
+        setExtractionStep('Profile extracted! Redirecting...')
+        await new Promise(r => setTimeout(r, 600))
+      } else {
+        // Even if extraction fails, still go to onboarding — user fills manually
+        setExtractionStep('Redirecting to onboarding...')
+        await new Promise(r => setTimeout(r, 400))
+      }
+
+      router.push('/onboarding')
+    } catch {
+      // Network error — still redirect, user fills manually
+      setExtractionStep('Redirecting to onboarding...')
+      await new Promise(r => setTimeout(r, 500))
+      router.push('/onboarding')
+    }
+  }
 
   return (
     <section className="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden grid-pattern">
@@ -166,12 +207,12 @@ export default function HeroSection() {
               variants={fadeUp}
               className="font-display font-bold text-5xl sm:text-6xl lg:text-7xl leading-[1.05] tracking-tight text-white mb-6"
             >
-              Find the{' '}
-              <span className="gradient-text">right jobs</span>
+              Apply to{' '}
+              <span className="gradient-text">100 jobs</span>
               <br />
-              and apply{' '}
+              while you{' '}
               <span className="relative inline-block">
-                faster
+                sleep
                 <motion.span
                   className="absolute -bottom-1 left-0 right-0 h-1 rounded-full gradient-primary"
                   initial={{ scaleX: 0 }}
@@ -186,45 +227,64 @@ export default function HeroSection() {
               variants={fadeUp}
               className="text-[#94a3b8] text-lg sm:text-xl leading-relaxed mb-8 max-w-lg mx-auto lg:mx-0"
             >
-              Upload your resume, extract skills, match jobs, and track applications — all in one premium AI-powered platform.
+              Upload your resume once. Our AI agent searches Naukri, LinkedIn & Indeed 24/7, fills forms, and submits applications — automatically.
             </motion.p>
 
-            {/* CTAs - Replaced with Dropzone */}
+            {/* Upload / Dropzone */}
             <motion.div variants={fadeUp} className="mt-8">
-              <div
-                className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 cursor-pointer max-w-md mx-auto lg:mx-0 ${
-                  false ? 'border-indigo-400 bg-indigo-500/10' : 'border-white/10 bg-white/3 hover:border-white/20 hover:bg-white/5'
-                }`}
-                id="hero-dropzone"
-                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-indigo-400', 'bg-indigo-500/10') }}
-                onDragLeave={(e) => { e.currentTarget.classList.remove('border-indigo-400', 'bg-indigo-500/10') }}
-                onDrop={(e) => {
-                  e.preventDefault()
-                  e.currentTarget.classList.remove('border-indigo-400', 'bg-indigo-500/10')
-                  const f = e.dataTransfer.files[0]
-                  if (f) {
-                    const el = document.getElementById('hero-upload') as HTMLInputElement
-                    if(el && el.parentElement) {
-                       el.parentElement.dispatchEvent(new CustomEvent('file-drop', { detail: f }))
-                    }
-                  }
-                }}
-                onClick={() => document.getElementById('hero-upload')?.click()}
-              >
-                <input
-                  id="hero-upload"
-                  type="file"
-                  accept=".pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0]
-                    if (f) e.target.parentElement?.dispatchEvent(new CustomEvent('file-drop', { detail: f }))
+              {isExtracting ? (
+                /* Loading State */
+                <div className="relative border-2 border-dashed border-indigo-400/60 rounded-2xl p-8 text-center bg-indigo-500/8 max-w-md mx-auto lg:mx-0">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="relative">
+                      <Loader2 className="w-10 h-10 text-indigo-400 animate-spin" />
+                      <FileText className="w-4 h-4 text-indigo-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                    </div>
+                    <p className="text-white font-semibold text-base">{extractionStep}</p>
+                    <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                      <motion.div
+                        className="h-full gradient-primary rounded-full"
+                        initial={{ width: '0%' }}
+                        animate={{ width: '90%' }}
+                        transition={{ duration: 4, ease: 'easeInOut' }}
+                      />
+                    </div>
+                    <p className="text-[#64748b] text-xs">This takes 3–5 seconds</p>
+                  </div>
+                </div>
+              ) : (
+                /* Dropzone */
+                <div
+                  className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 cursor-pointer max-w-md mx-auto lg:mx-0 ${
+                    isDragging ? 'border-indigo-400 bg-indigo-500/10 scale-[1.02]' : 'border-white/10 bg-white/3 hover:border-white/20 hover:bg-white/5'
+                  }`}
+                  id="hero-dropzone"
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setIsDragging(false)
+                    const f = e.dataTransfer.files[0]
+                    if (f) handleFile(f)
                   }}
-                />
-                <Upload className="w-10 h-10 text-[#64748b] mx-auto mb-3" />
-                <p className="text-white font-medium text-lg mb-1">Upload Resume to Start</p>
-                <p className="text-[#64748b] text-sm">Drag & drop or click to browse (PDF only)</p>
-              </div>
+                  onClick={() => document.getElementById('hero-upload')?.click()}
+                >
+                  <input
+                    id="hero-upload"
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f) handleFile(f)
+                    }}
+                  />
+                  <Upload className="w-10 h-10 text-[#64748b] mx-auto mb-3" />
+                  <p className="text-white font-medium text-lg mb-1">Upload Resume to Start</p>
+                  <p className="text-[#64748b] text-sm">Drag &amp; drop or click to browse · PDF only</p>
+                  <p className="text-[#4b5563] text-xs mt-2">Your resume is never stored publicly</p>
+                </div>
+              )}
             </motion.div>
 
             {/* Social proof */}
@@ -247,7 +307,7 @@ export default function HeroSection() {
                   ))}
                 </div>
                 <p className="text-[#64748b] text-xs mt-0.5">
-                  <span className="text-white font-semibold">12,000+</span> job seekers trust us
+                  <span className="text-white font-semibold">Be among the first</span> to try AutoApply AI
                 </p>
               </div>
             </motion.div>

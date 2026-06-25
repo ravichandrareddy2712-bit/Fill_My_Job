@@ -16,26 +16,38 @@ export interface UserProfile {
   email?: string
   first_name?: string
   last_name?: string
+  middle_name?: string
   gender?: string
   dob?: string
   mobile?: string
-  address?: string
+  current_city?: string
+  full_address?: string
+  address?: string  // legacy compat
   linkedin_url?: string
   portfolio_url?: string
   current_ctc?: string
   expected_ctc?: string
   notice_period?: string
   willing_to_relocate?: boolean
+  experience_years?: number
+  target_roles?: string[]
+  preferred_locations?: string[]
+  work_type?: string
+  resume_url?: string
+  resume_text?: string
   skills?: string[]
   experience?: Array<{ company: string; role: string; duration: string }>
   internships?: unknown[]
   projects?: unknown[]
   education?: unknown[]
   certifications?: unknown[]
-  negative_preferences?: Record<string, unknown>
   common_answers?: Record<string, string>
+  portal_links?: Record<string, unknown>
+  plan?: string
+  whatsapp_number?: string
   search_links?: string[]
   created_at?: string
+  updated_at?: string
 }
 
 /** Save or upsert a profile (merges on session_id) */
@@ -56,7 +68,7 @@ export async function saveProfile(data: Partial<UserProfile>): Promise<UserProfi
   return Array.isArray(rows) ? rows[0] : rows
 }
 
-/** Get the most recent profile (or by session_id) */
+/** Get profile by session_id (or most recent if no session_id) */
 export async function getProfile(sessionId?: string): Promise<UserProfile | null> {
   let url = `${SUPABASE_URL}/rest/v1/users?select=*&order=id.desc&limit=1`
   if (sessionId) {
@@ -68,51 +80,42 @@ export async function getProfile(sessionId?: string): Promise<UserProfile | null
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null
 }
 
-// ─── Extension Tasks ─────────────────────────────────────────
-export interface ExtensionTask {
+// ─── Applications ─────────────────────────────────────────────
+export interface Application {
   id?: string
   session_id?: string
-  apply_link: string
-  job_title?: string
   company?: string
-  field_mappings: Array<{ field_selector: string; field_label: string; value_to_enter: string; confidence: number }>
-  status: 'pending' | 'completed' | 'skipped'
-  created_at?: string
+  job_title?: string
+  portal?: string
+  apply_type?: string
+  status?: string
+  apply_link?: string
+  applied_at?: string
+  notes?: string
+  screenshot_url?: string
 }
 
-/** Save a task for the browser extension to handle */
-export async function saveExtensionTask(task: Omit<ExtensionTask, 'id' | 'created_at'>): Promise<boolean> {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/extension_tasks`, {
-    method: 'POST',
-    headers: {
-      ...headers(),
-      'Prefer': 'return=minimal',
-    },
-    body: JSON.stringify(task),
-  })
-  return res.ok
-}
-
-/** Get pending extension tasks */
-export async function getPendingTasks(sessionId?: string): Promise<ExtensionTask[]> {
-  let url = `${SUPABASE_URL}/rest/v1/extension_tasks?status=eq.pending&order=created_at.desc&limit=20`
-  if (sessionId) {
-    url += `&session_id=eq.${encodeURIComponent(sessionId)}`
-  }
+/** Get all applications for a session, ordered newest first */
+export async function getApplications(sessionId: string): Promise<Application[]> {
+  const url = `${SUPABASE_URL}/rest/v1/applications?session_id=eq.${encodeURIComponent(sessionId)}&select=*&order=applied_at.desc&limit=100`
   const res = await fetch(url, { headers: headers() })
   if (!res.ok) return []
   return res.json()
 }
 
-/** Mark an extension task as completed */
-export async function completeExtensionTask(taskId: string): Promise<boolean> {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/extension_tasks?id=eq.${taskId}`, {
-    method: 'PATCH',
-    headers: {
-      ...headers(),
-      'Prefer': 'return=minimal',
-    },
-    body: JSON.stringify({ status: 'completed' }),
-  })
-  return res.ok
+/** Get application stats for dashboard cards */
+export async function getApplicationStats(sessionId: string): Promise<{
+  total: number
+  appliedToday: number
+  pending: number
+  responses: number
+}> {
+  const apps = await getApplications(sessionId)
+  const today = new Date().toISOString().split('T')[0]
+  return {
+    total: apps.length,
+    appliedToday: apps.filter(a => a.applied_at?.startsWith(today) && a.status?.includes('Applied')).length,
+    pending: apps.filter(a => a.status === 'Pending' || a.status?.includes('Pending')).length,
+    responses: apps.filter(a => a.status?.includes('Response') || a.status?.includes('Interview') || a.status?.includes('Offer')).length,
+  }
 }

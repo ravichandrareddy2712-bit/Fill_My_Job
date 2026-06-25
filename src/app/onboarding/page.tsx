@@ -1,65 +1,209 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  BrainCircuit, Briefcase, MapPin,
-  ArrowRight, ArrowLeft, Check
+  BrainCircuit, User, Briefcase, CheckCircle2,
+  ArrowRight, ArrowLeft, Check, X, Plus, ChevronDown,
 } from 'lucide-react'
 import { useFileContext } from '@/context/FileContext'
 import { saveProfile } from '@/lib/supabase'
 
-const steps = [
-  { id: 1, title: 'Skills & Experience', icon: Briefcase, description: 'What you bring to the table' },
-  { id: 2, title: 'Job Preferences', icon: MapPin, description: 'Your ideal role' },
+// ─── Role Lists ───────────────────────────────────────────────
+const TECH_ROLES = [
+  'Software Engineer', 'Frontend Developer', 'Backend Developer', 'Full Stack Developer',
+  'Mobile Developer (Android)', 'Mobile Developer (iOS)', 'Flutter Developer', 'React Native Developer',
+  'DevOps Engineer', 'Cloud Engineer (AWS)', 'Cloud Engineer (GCP)', 'Cloud Engineer (Azure)',
+  'Data Engineer', 'Data Scientist', 'Data Analyst', 'ML Engineer', 'AI/LLM Engineer',
+  'Cybersecurity Analyst', 'QA Engineer', 'Embedded Systems Engineer', 'Blockchain Developer',
+  'Game Developer', 'AR/VR Developer', 'Database Administrator', 'Network Engineer', 'IT Support',
+]
+const NONTTECH_ROLES = [
+  'Product Manager', 'Project Manager', 'Business Analyst', 'UI/UX Designer', 'Graphic Designer',
+  'Content Writer', 'Copywriter', 'Digital Marketing Manager', 'SEO Specialist', 'Social Media Manager',
+  'HR Manager', 'Recruiter', 'Sales Executive', 'Business Development', 'Finance Analyst',
+  'Accountant', 'Operations Manager', 'Supply Chain', 'Customer Success', 'Legal Counsel', 'Teaching / Edtech',
 ]
 
-const roleOptions = ['Internship', 'Full-time Job', 'Part-time Job', 'Software Engineer', 'Product Manager', 'Data Scientist', 'UX Designer', 'Marketing Manager']
-const locationOptions = ['India', 'Remote', 'United States', 'United Kingdom', 'Germany', 'Singapore', 'Canada', 'Australia']
+const NOTICE_OPTIONS = ['Immediate', '15 days', '30 days', '60 days', '90 days']
+const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Prefer not to say']
+const WORK_TYPE_OPTIONS = ['Remote', 'Hybrid', 'Onsite', 'Any']
+
+const steps = [
+  { id: 1, title: 'Personal Details', icon: User, description: 'Basic info about you' },
+  { id: 2, title: 'Target Roles', icon: Briefcase, description: 'What you\'re looking for' },
+  { id: 3, title: 'Confirm & Q&A', icon: CheckCircle2, description: 'Review & common answers' },
+]
+
+// ─── Field Component ──────────────────────────────────────────
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="text-[#94a3b8] text-xs font-medium mb-1.5 block">
+        {label}{required && <span className="text-rose-400 ml-0.5">*</span>}
+      </label>
+      {children}
+    </div>
+  )
+}
+
+const inputCls = 'w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-[#4b5563] outline-none focus:border-indigo-500/60 focus:bg-white/7 transition-all'
+const selectCls = `${inputCls} appearance-none`
+
+// ─── Role Chip ────────────────────────────────────────────────
+function RoleChip({ role, onRemove }: { role: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-medium">
+      {role}
+      <button onClick={onRemove} className="hover:text-rose-400 transition-colors"><X className="w-3 h-3" /></button>
+    </span>
+  )
+}
 
 export default function OnboardingPage() {
   const router = useRouter()
   const { resumeFile } = useFileContext()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [step, setStep] = useState(1)
-  const [form, setForm] = useState({
-    experience: 'Fresher',
-    roles: [] as string[],
-    locations: [] as string[],
-  })
   const [direction, setDirection] = useState(1)
+  const [roleSearch, setRoleSearch] = useState('')
+  const [customRole, setCustomRole] = useState('')
+  const [locationInput, setLocationInput] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const goNext = () => { setDirection(1); setStep((s) => Math.min(s + 1, 2)) }
-  const goPrev = () => { setDirection(-1); setStep((s) => Math.max(s - 1, 1)) }
+  // ─── Step 1: Personal Details
+  const [personal, setPersonal] = useState({
+    first_name: '',
+    last_name: '',
+    middle_name: '',
+    gender: '',
+    dob: '',
+    mobile: '',
+    email: '',
+    current_city: '',
+    full_address: '',
+    linkedin_url: '',
+    portfolio_url: '',
+    current_ctc: '',
+    expected_ctc: '',
+    notice_period: 'Immediate',
+    willing_to_relocate: false,
+    experience_years: '',
+  })
+
+  // ─── Step 2: Roles
+  const [roles, setRoles] = useState<string[]>([])
+  const [work_type, setWorkType] = useState('Any')
+  const [locations, setLocations] = useState<string[]>([])
+
+  // ─── Step 3: Q&A
+  const [qa, setQA] = useState({
+    years_in_primary_skill: '',
+    night_shifts: 'No',
+    valid_passport: 'No',
+    fresher_or_experienced: 'Fresher',
+    highest_qualification: '',
+    current_employer: '',
+  })
+
+  // Pre-fill from AI extraction stored in sessionStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const raw = sessionStorage.getItem('fmj_extracted')
+    if (!raw) return
+    try {
+      const ex = JSON.parse(raw)
+      setPersonal(p => ({
+        ...p,
+        first_name: ex.first_name || p.first_name,
+        last_name: ex.last_name || p.last_name,
+        middle_name: ex.middle_name || p.middle_name,
+        email: ex.email || p.email,
+        mobile: ex.mobile || p.mobile,
+        gender: ex.gender || p.gender,
+        dob: ex.dob || p.dob,
+        current_city: ex.current_city || p.current_city,
+        full_address: ex.full_address || p.full_address,
+        linkedin_url: ex.linkedin_url || p.linkedin_url,
+        portfolio_url: ex.portfolio_url || p.portfolio_url,
+        current_ctc: ex.current_ctc || p.current_ctc,
+        expected_ctc: ex.expected_ctc || p.expected_ctc,
+        notice_period: ex.notice_period || p.notice_period,
+        willing_to_relocate: ex.willing_to_relocate ?? p.willing_to_relocate,
+        experience_years: ex.experience_years?.toString() || p.experience_years,
+      }))
+      if (ex.target_roles?.length) setRoles(ex.target_roles.slice(0, 5))
+      if (ex.common_answers) {
+        setQA(q => ({
+          ...q,
+          years_in_primary_skill: ex.common_answers.years_in_primary_skill || q.years_in_primary_skill,
+          fresher_or_experienced: ex.is_fresher ? 'Fresher' : 'Experienced',
+          highest_qualification: ex.common_answers.highest_qualification || ex.highest_qualification || q.highest_qualification,
+          current_employer: ex.common_answers.current_employer || ex.current_employer || q.current_employer,
+        }))
+      }
+    } catch { /* ignore */ }
+  }, [])
+
+  const setP = (key: string, val: string | boolean) => setPersonal(p => ({ ...p, [key]: val }))
+  const goNext = () => {
+    const e = validateStep(step)
+    if (Object.keys(e).length > 0) { setErrors(e); return }
+    setErrors({})
+    setDirection(1)
+    setStep(s => Math.min(s + 1, 3))
+  }
+  const goPrev = () => { setDirection(-1); setStep(s => Math.max(s - 1, 1)); setErrors({}) }
+
+  const validateStep = (s: number): Record<string, string> => {
+    const e: Record<string, string> = {}
+    if (s === 1) {
+      if (!personal.first_name.trim()) e.first_name = 'Required'
+      if (!personal.last_name.trim()) e.last_name = 'Required'
+      if (!personal.email.trim()) e.email = 'Required'
+      if (!personal.mobile.trim()) e.mobile = 'Required'
+    }
+    if (s === 2) {
+      if (roles.length === 0) e.roles = 'Select at least one role'
+    }
+    return e
+  }
 
   const toggleRole = (r: string) => {
-    setForm(f => ({
-      ...f,
-      roles: f.roles.includes(r) ? f.roles.filter(x => x !== r) : [...f.roles, r]
-    }))
+    setRoles(prev => prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r])
+    setErrors(e => ({ ...e, roles: '' }))
   }
 
-  const toggleLocation = (l: string) => {
-    setForm(f => ({
-      ...f,
-      locations: f.locations.includes(l) ? f.locations.filter(x => x !== l) : [...f.locations, l]
-    }))
+  const addCustomRole = () => {
+    const r = customRole.trim()
+    if (r && !roles.includes(r)) { setRoles(prev => [...prev, r]); setRoleSearch(''); setCustomRole('') }
   }
+
+  const addLocation = () => {
+    const locs = locationInput.split(',').map(l => l.trim()).filter(Boolean)
+    setLocations(prev => [...new Set([...prev, ...locs])])
+    setLocationInput('')
+  }
+
+  const filteredRoles = (list: string[]) =>
+    roleSearch ? list.filter(r => r.toLowerCase().includes(roleSearch.toLowerCase())) : list
 
   const handleSubmit = async () => {
+    const e = validateStep(3)
+    if (Object.keys(e).length > 0) { setErrors(e); return }
+
     setIsSubmitting(true)
     try {
-      // Generate a unique session ID
-      const sessionId = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 8)
+      const sessionId = localStorage.getItem('fmj_session_id') || (Date.now().toString() + '-' + Math.random().toString(36).substring(2, 8))
 
-      // Generate search links from roles + locations
+      // Build search links from roles + locations
       const searchLinks: string[] = []
-      const roles = form.roles.length > 0 ? form.roles : ['Software Engineer']
-      const locations = form.locations.length > 0 ? form.locations : ['Remote']
-      for (const role of roles) {
-        for (const loc of locations) {
+      const effectiveRoles = roles.length > 0 ? roles : ['Software Engineer']
+      const effectiveLocs = locations.length > 0 ? locations : ['Remote']
+      for (const role of effectiveRoles.slice(0, 3)) {
+        for (const loc of effectiveLocs.slice(0, 2)) {
           const q = encodeURIComponent(role)
           const l = encodeURIComponent(loc)
           searchLinks.push(`https://in.indeed.com/jobs?q=${q}&l=${l}`)
@@ -68,61 +212,78 @@ export default function OnboardingPage() {
         }
       }
 
-      // Save profile to Supabase (NOT to n8n webhook)
+      // Get extracted data if present
+      let extracted: Record<string, unknown> = {}
+      try {
+        const raw = sessionStorage.getItem('fmj_extracted')
+        if (raw) extracted = JSON.parse(raw)
+      } catch { /* ignore */ }
+
       const profileData = {
         session_id: sessionId,
-        skills: form.roles,
-        experience: [],
+        // Step 1
+        first_name: personal.first_name,
+        last_name: personal.last_name,
+        middle_name: personal.middle_name,
+        gender: personal.gender,
+        dob: personal.dob,
+        mobile: personal.mobile.replace(/\D/g, '').slice(-10),
+        email: personal.email,
+        current_city: personal.current_city,
+        full_address: personal.full_address,
+        address: personal.full_address, // legacy compat
+        linkedin_url: personal.linkedin_url,
+        portfolio_url: personal.portfolio_url,
+        current_ctc: personal.current_ctc,
+        expected_ctc: personal.expected_ctc,
+        notice_period: personal.notice_period,
+        willing_to_relocate: personal.willing_to_relocate,
+        experience_years: parseInt(personal.experience_years) || 0,
+        // Step 2
+        target_roles: roles,
+        skills: roles, // legacy compat + AI-extracted skills
+        preferred_locations: locations,
+        work_type,
         search_links: searchLinks,
-        first_name: '',
-        last_name: '',
-        email: '',
-        mobile: '',
-        address: '',
-        linkedin_url: '',
-        portfolio_url: '',
-        current_ctc: '',
-        expected_ctc: '',
-        notice_period: form.experience,
-        willing_to_relocate: form.locations.some(l => l !== 'India'),
-        internships: [],
-        projects: [],
-        education: [],
-        certifications: [],
-        negative_preferences: {},
-        common_answers: {},
+        // Resume data from extraction
+        experience: (extracted.experience as unknown[]) || [],
+        internships: (extracted.internships as unknown[]) || [],
+        projects: (extracted.projects as unknown[]) || [],
+        education: (extracted.education as unknown[]) || [],
+        certifications: (extracted.certifications as unknown[]) || [],
+        resume_text: (extracted.resume_text as string) || '',
+        // Step 3
+        common_answers: {
+          years_in_primary_skill: qa.years_in_primary_skill,
+          night_shifts: qa.night_shifts,
+          valid_passport: qa.valid_passport,
+          fresher_or_experienced: qa.fresher_or_experienced,
+          highest_qualification: qa.highest_qualification,
+          current_employer: qa.current_employer,
+        },
       }
 
       const saved = await saveProfile(profileData)
-      if (!saved) {
-        throw new Error('Failed to save profile to Supabase')
-      }
+      if (!saved) throw new Error('Failed to save profile to Supabase')
 
-      // Store session in localStorage for dashboard
       localStorage.setItem('fmj_session_id', sessionId)
-      localStorage.setItem('fmj_roles', JSON.stringify(form.roles))
-      localStorage.setItem('fmj_locations', JSON.stringify(form.locations))
-      localStorage.setItem('fmj_experience', form.experience)
+      localStorage.setItem('fmj_roles', JSON.stringify(roles))
+      localStorage.setItem('fmj_locations', JSON.stringify(locations))
       localStorage.setItem('fmj_onboarded', 'true')
 
-      // If resume file exists, also send it to n8n for AI extraction (fire & forget)
+      // Fire-and-forget: upload resume to N8N if present
       if (resumeFile) {
-        const formData = new FormData()
-        formData.append('experience', form.experience)
-        formData.append('roles', JSON.stringify(form.roles))
-        formData.append('locations', JSON.stringify(form.locations))
-        formData.append('resume', resumeFile)
-        formData.append('session_id', sessionId)
-        const webhookUrl = '/api/n8n-webhook'
-        if (webhookUrl) {
-          // Fire & forget — don't block redirect
-          fetch(webhookUrl, { method: 'POST', body: formData }).catch(() => {})
-        }
+        const fd = new FormData()
+        fd.append('resume', resumeFile)
+        fd.append('session_id', sessionId)
+        fd.append('roles', JSON.stringify(roles))
+        fd.append('locations', JSON.stringify(locations))
+        fetch('/api/n8n-webhook', { method: 'POST', body: fd }).catch(() => {})
       }
 
       router.push('/dashboard')
-    } catch (error) {
-      console.error('Error during onboarding:', error)
+    } catch (err) {
+      console.error('Onboarding submit error:', err)
       alert('Failed to save your profile. Please try again.')
     } finally {
       setIsSubmitting(false)
@@ -147,42 +308,45 @@ export default function OnboardingPage() {
           </div>
           <span className="font-display font-bold text-white text-sm">FindMyJob.AI</span>
         </Link>
-        <span className="text-[#64748b] text-sm">Step {step} of 2</span>
+        <span className="text-[#64748b] text-sm">Step {step} of 3</span>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-4 py-8 relative z-10">
-        <div className="w-full max-w-xl">
-          {/* Progress */}
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              {steps.map((s) => (
-                <div key={s.id} className="flex-1 flex flex-col items-center gap-1">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+      <div className="flex-1 flex items-start justify-center px-4 py-4 relative z-10">
+        <div className="w-full max-w-2xl">
+          {/* Progress bar */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              {steps.map((s, idx) => (
+                <div key={s.id} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
                       s.id < step ? 'gradient-primary text-white' :
-                      s.id === step ? 'border-2 border-indigo-500 text-indigo-400' :
+                      s.id === step ? 'border-2 border-indigo-500 text-indigo-400 bg-indigo-500/10' :
                       'border border-white/10 text-[#4b5563]'
-                    }`}
-                  >
-                    {s.id < step ? <Check className="w-3.5 h-3.5" /> : s.id}
+                    }`}>
+                      {s.id < step ? <Check className="w-3.5 h-3.5" /> : s.id}
+                    </div>
+                    <span className={`text-[10px] font-medium text-center hidden sm:block ${s.id === step ? 'text-white' : 'text-[#4b5563]'}`}>
+                      {s.title}
+                    </span>
                   </div>
-                  <span className={`text-[10px] font-medium text-center hidden sm:block ${s.id === step ? 'text-white' : 'text-[#4b5563]'}`}>
-                    {s.title}
-                  </span>
+                  {idx < steps.length - 1 && (
+                    <div className={`flex-1 h-0.5 mx-2 rounded-full transition-all duration-500 ${s.id < step ? 'bg-indigo-500' : 'bg-white/8'}`} />
+                  )}
                 </div>
               ))}
             </div>
             <div className="h-1 bg-white/5 rounded-full overflow-hidden">
               <motion.div
                 className="h-full gradient-primary rounded-full"
-                animate={{ width: `${((step - 1) / 1) * 100}%` }}
+                animate={{ width: `${((step - 1) / 2) * 100}%` }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               />
             </div>
           </div>
 
           {/* Card */}
-          <div className="glass-card p-8 relative overflow-hidden">
+          <div className="glass-card p-6 sm:p-8 relative overflow-hidden">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={step}
@@ -191,91 +355,274 @@ export default function OnboardingPage() {
                 initial="enter"
                 animate="center"
                 exit="exit"
-                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               >
-                {/* Step 1: Skills */}
+
+                {/* ══════════════════════════ STEP 1 ══════════════════════════ */}
                 {step === 1 && (
                   <div>
-                    <h2 className="font-display font-bold text-2xl text-white mb-1">Experience</h2>
-                    <p className="text-[#64748b] text-sm mb-6">Select your years of experience.</p>
+                    <h2 className="font-display font-bold text-2xl text-white mb-1">Personal Details</h2>
+                    <p className="text-[#64748b] text-sm mb-6">Fill in your basic information. Pre-filled from your resume where possible.</p>
 
-                    {/* Experience */}
-                    <div>
-                      <label className="text-[#94a3b8] text-xs font-medium mb-2 block">Years of Experience</label>
-                      <div className="grid grid-cols-4 gap-2">
-                        {['Fresher', '0-1', '1-2', '2-5', '5-10', '10+'].map((lvl) => (
-                          <button
-                            key={lvl}
-                            onClick={() => setForm(f => ({ ...f, experience: lvl }))}
-                            className={`py-2 rounded-xl text-xs font-medium border transition-all ${
-                              form.experience === lvl
-                                ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
-                                : 'bg-white/3 border-white/10 text-[#64748b] hover:border-white/20 hover:text-white'
-                            }`}
-                          >
-                            {lvl === 'Fresher' ? 'Fresher' : `${lvl} yrs`}
-                          </button>
-                        ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Field label="First Name" required>
+                        <input className={inputCls + (errors.first_name ? ' border-rose-500/60' : '')} placeholder="Rahul" value={personal.first_name} onChange={e => setP('first_name', e.target.value)} />
+                        {errors.first_name && <p className="text-rose-400 text-[10px] mt-1">{errors.first_name}</p>}
+                      </Field>
+                      <Field label="Last Name" required>
+                        <input className={inputCls + (errors.last_name ? ' border-rose-500/60' : '')} placeholder="Sharma" value={personal.last_name} onChange={e => setP('last_name', e.target.value)} />
+                        {errors.last_name && <p className="text-rose-400 text-[10px] mt-1">{errors.last_name}</p>}
+                      </Field>
+                      <Field label="Middle Name">
+                        <input className={inputCls} placeholder="Optional" value={personal.middle_name} onChange={e => setP('middle_name', e.target.value)} />
+                      </Field>
+                      <Field label="Gender">
+                        <div className="relative">
+                          <select className={selectCls} value={personal.gender} onChange={e => setP('gender', e.target.value)}>
+                            <option value="">Select gender</option>
+                            {GENDER_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+                          </select>
+                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748b] pointer-events-none" />
+                        </div>
+                      </Field>
+                      <Field label="Date of Birth">
+                        <input type="date" className={inputCls} value={personal.dob} onChange={e => setP('dob', e.target.value)} />
+                      </Field>
+                      <Field label="Mobile Number" required>
+                        <div className="flex">
+                          <span className="px-3 py-2.5 rounded-l-xl bg-white/5 border border-r-0 border-white/10 text-[#64748b] text-sm">+91</span>
+                          <input className={inputCls + ' rounded-l-none' + (errors.mobile ? ' border-rose-500/60' : '')} placeholder="9876543210" value={personal.mobile} onChange={e => setP('mobile', e.target.value)} />
+                        </div>
+                        {errors.mobile && <p className="text-rose-400 text-[10px] mt-1">{errors.mobile}</p>}
+                      </Field>
+                      <Field label="Email Address" required>
+                        <input type="email" className={inputCls + (errors.email ? ' border-rose-500/60' : '')} placeholder="rahul@example.com" value={personal.email} onChange={e => setP('email', e.target.value)} />
+                        {errors.email && <p className="text-rose-400 text-[10px] mt-1">{errors.email}</p>}
+                      </Field>
+                      <Field label="Current City">
+                        <input className={inputCls} placeholder="Hyderabad" value={personal.current_city} onChange={e => setP('current_city', e.target.value)} />
+                      </Field>
+                      <div className="sm:col-span-2">
+                        <Field label="Full Address">
+                          <textarea className={inputCls} rows={2} placeholder="Door No, Street, City, State, PIN" value={personal.full_address} onChange={e => setP('full_address', e.target.value)} />
+                        </Field>
+                      </div>
+                      <Field label="LinkedIn Profile URL">
+                        <input type="url" className={inputCls} placeholder="linkedin.com/in/yourname" value={personal.linkedin_url} onChange={e => setP('linkedin_url', e.target.value)} />
+                      </Field>
+                      <Field label="Portfolio / GitHub URL">
+                        <input type="url" className={inputCls} placeholder="github.com/yourname (optional)" value={personal.portfolio_url} onChange={e => setP('portfolio_url', e.target.value)} />
+                      </Field>
+                      <Field label="Current CTC">
+                        <input className={inputCls} placeholder='3 LPA or "0 — Fresher"' value={personal.current_ctc} onChange={e => setP('current_ctc', e.target.value)} />
+                      </Field>
+                      <Field label="Expected CTC">
+                        <input className={inputCls} placeholder="5 LPA" value={personal.expected_ctc} onChange={e => setP('expected_ctc', e.target.value)} />
+                      </Field>
+                      <Field label="Notice Period">
+                        <div className="relative">
+                          <select className={selectCls} value={personal.notice_period} onChange={e => setP('notice_period', e.target.value)}>
+                            {NOTICE_OPTIONS.map(n => <option key={n} value={n}>{n}</option>)}
+                          </select>
+                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748b] pointer-events-none" />
+                        </div>
+                      </Field>
+                      <Field label="Years of Total Experience">
+                        <input type="number" min="0" max="50" className={inputCls} placeholder="0 (for fresher)" value={personal.experience_years} onChange={e => setP('experience_years', e.target.value)} />
+                      </Field>
+                      <div className="sm:col-span-2">
+                        <Field label="Willing to Relocate">
+                          <div className="flex gap-3 mt-1">
+                            {['Yes', 'No'].map(v => (
+                              <button
+                                key={v}
+                                type="button"
+                                onClick={() => setP('willing_to_relocate', v === 'Yes')}
+                                className={`px-5 py-2 rounded-xl text-sm font-medium border transition-all ${
+                                  (personal.willing_to_relocate && v === 'Yes') || (!personal.willing_to_relocate && v === 'No')
+                                    ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300'
+                                    : 'bg-white/3 border-white/10 text-[#64748b] hover:border-white/20'
+                                }`}
+                              >{v}</button>
+                            ))}
+                          </div>
+                        </Field>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Step 2: Preferences */}
+                {/* ══════════════════════════ STEP 2 ══════════════════════════ */}
                 {step === 2 && (
                   <div>
-                    <h2 className="font-display font-bold text-2xl text-white mb-1">Job Preferences</h2>
-                    <p className="text-[#64748b] text-sm mb-6">What roles and locations are you targeting?</p>
+                    <h2 className="font-display font-bold text-2xl text-white mb-1">What roles are you targeting?</h2>
+                    <p className="text-[#64748b] text-sm mb-5">Select one or more roles. You can also type a custom role.</p>
 
+                    {/* Search */}
+                    <div className="flex gap-2 mb-4">
+                      <input
+                        className={inputCls}
+                        placeholder="Search or type a custom role..."
+                        value={roleSearch}
+                        onChange={e => { setRoleSearch(e.target.value); setCustomRole(e.target.value) }}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomRole() } }}
+                      />
+                      {customRole.trim() && !TECH_ROLES.includes(customRole) && !NONTTECH_ROLES.includes(customRole) && (
+                        <button onClick={addCustomRole} className="btn-primary py-2.5 px-4 text-sm whitespace-nowrap">
+                          <Plus className="w-4 h-4" /> Add
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Selected chips */}
+                    {roles.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4 p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/15">
+                        <p className="w-full text-indigo-300 text-[10px] font-semibold uppercase tracking-wider mb-1">Selected Roles</p>
+                        {roles.map(r => <RoleChip key={r} role={r} onRemove={() => setRoles(prev => prev.filter(x => x !== r))} />)}
+                      </div>
+                    )}
+                    {errors.roles && <p className="text-rose-400 text-xs mb-3">{errors.roles}</p>}
+
+                    {/* Tech Roles */}
+                    <div className="mb-4">
+                      <p className="text-[#64748b] text-[11px] font-semibold uppercase tracking-wider mb-2">Tech Roles</p>
+                      <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto">
+                        {filteredRoles(TECH_ROLES).map(r => (
+                          <button key={r} onClick={() => toggleRole(r)}
+                            className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                              roles.includes(r) ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300' : 'bg-white/3 border-white/10 text-[#64748b] hover:border-white/20 hover:text-white'
+                            }`}>{r}</button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Non-Tech Roles */}
                     <div className="mb-5">
-                      <label className="text-[#94a3b8] text-xs font-medium mb-2 block">Preferred Roles</label>
-                      <div className="flex flex-wrap gap-2">
-                        {roleOptions.map((r) => (
-                          <button
-                            key={r}
-                            onClick={() => toggleRole(r)}
+                      <p className="text-[#64748b] text-[11px] font-semibold uppercase tracking-wider mb-2">Non-Tech Roles</p>
+                      <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto">
+                        {filteredRoles(NONTTECH_ROLES).map(r => (
+                          <button key={r} onClick={() => toggleRole(r)}
                             className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
-                              form.roles.includes(r)
-                                ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
-                                : 'bg-white/3 border-white/10 text-[#64748b] hover:border-white/20 hover:text-white'
-                            }`}
-                          >
-                            {r}
-                          </button>
+                              roles.includes(r) ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300' : 'bg-white/3 border-white/10 text-[#64748b] hover:border-white/20 hover:text-white'
+                            }`}>{r}</button>
                         ))}
                       </div>
                     </div>
 
-                    <div className="mb-6">
-                      <label className="text-[#94a3b8] text-xs font-medium mb-2 block">Preferred Locations</label>
-                      <div className="flex flex-wrap gap-2">
-                        {locationOptions.map((l) => (
-                          <button
-                            key={l}
-                            onClick={() => toggleLocation(l)}
-                            className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
-                              form.locations.includes(l)
-                                ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300'
-                                : 'bg-white/3 border-white/10 text-[#64748b] hover:border-white/20 hover:text-white'
-                            }`}
-                          >
-                            {l}
-                          </button>
+                    {/* Work Type */}
+                    <Field label="Preferred Work Type">
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {WORK_TYPE_OPTIONS.map(w => (
+                          <button key={w} type="button" onClick={() => setWorkType(w)}
+                            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                              work_type === w ? 'bg-violet-500/20 border-violet-500/40 text-violet-300' : 'bg-white/3 border-white/10 text-[#64748b] hover:border-white/20'
+                            }`}>{w}</button>
                         ))}
+                      </div>
+                    </Field>
+
+                    {/* Preferred Locations */}
+                    <div className="mt-4">
+                      <Field label="Preferred Locations (comma separated)">
+                        <div className="flex gap-2">
+                          <input className={inputCls} placeholder="Hyderabad, Bangalore, Remote" value={locationInput} onChange={e => setLocationInput(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLocation() } }} />
+                          <button onClick={addLocation} className="btn-secondary py-2.5 px-4 text-sm whitespace-nowrap">Add</button>
+                        </div>
+                      </Field>
+                      {locations.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {locations.map(l => (
+                            <span key={l} className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-medium">
+                              {l}
+                              <button onClick={() => setLocations(prev => prev.filter(x => x !== l))}><X className="w-3 h-3 hover:text-rose-400" /></button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ══════════════════════════ STEP 3 ══════════════════════════ */}
+                {step === 3 && (
+                  <div>
+                    <h2 className="font-display font-bold text-2xl text-white mb-1">Confirm & Common Q&A</h2>
+                    <p className="text-[#64748b] text-sm mb-5">Review your details and fill in standard application questions.</p>
+
+                    {/* Summary Card */}
+                    <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/15 mb-6">
+                      <p className="text-indigo-300 text-xs font-semibold mb-3 uppercase tracking-wider">Profile Summary</p>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div><p className="text-[#4b5563] uppercase tracking-wider text-[10px]">Name</p><p className="text-[#94a3b8]">{personal.first_name} {personal.last_name}</p></div>
+                        <div><p className="text-[#4b5563] uppercase tracking-wider text-[10px]">Email</p><p className="text-[#94a3b8] truncate">{personal.email || '—'}</p></div>
+                        <div><p className="text-[#4b5563] uppercase tracking-wider text-[10px]">Mobile</p><p className="text-[#94a3b8]">{personal.mobile ? `+91 ${personal.mobile}` : '—'}</p></div>
+                        <div><p className="text-[#4b5563] uppercase tracking-wider text-[10px]">City</p><p className="text-[#94a3b8]">{personal.current_city || '—'}</p></div>
+                        <div><p className="text-[#4b5563] uppercase tracking-wider text-[10px]">Notice</p><p className="text-[#94a3b8]">{personal.notice_period}</p></div>
+                        <div><p className="text-[#4b5563] uppercase tracking-wider text-[10px]">Work Type</p><p className="text-[#94a3b8]">{work_type}</p></div>
+                        <div className="col-span-2"><p className="text-[#4b5563] uppercase tracking-wider text-[10px] mb-1">Target Roles</p>
+                          <div className="flex flex-wrap gap-1">{roles.slice(0, 5).map(r => <span key={r} className="badge badge-indigo text-[9px] py-0.5">{r}</span>)}{roles.length > 5 && <span className="text-[#4b5563] text-[10px]">+{roles.length - 5} more</span>}</div>
+                        </div>
+                        <div className="col-span-2"><p className="text-[#4b5563] uppercase tracking-wider text-[10px] mb-1">Locations</p>
+                          <p className="text-[#94a3b8]">{locations.length > 0 ? locations.join(', ') : 'Not specified'}</p>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Summary */}
-                    <div className="p-4 rounded-2xl glass border border-indigo-500/20">
-                      <p className="text-indigo-300 text-xs font-semibold mb-2">Summary</p>
-                      <div className="text-[#94a3b8] text-xs space-y-1">
-                        <p>📄 {resumeFile ? resumeFile.name : 'No resume (will use Supabase profile)'}</p>
-                        <p>💼 {form.experience} {form.experience === 'Fresher' ? '' : 'years '}experience</p>
-                        <p>🎯 {form.roles.length || 0} roles · {form.locations.length || 0} locations</p>
+                    {/* Common Q&A */}
+                    <div className="space-y-4">
+                      <p className="text-white font-semibold text-sm">Common Application Questions</p>
+
+                      <Field label="Years of experience in your primary skill">
+                        <input type="number" min="0" className={inputCls} placeholder="e.g. 2" value={qa.years_in_primary_skill} onChange={e => setQA(q => ({ ...q, years_in_primary_skill: e.target.value }))} />
+                      </Field>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <Field label="Willing to work night shifts?">
+                          <div className="flex gap-2 mt-1">
+                            {['Yes', 'No'].map(v => (
+                              <button key={v} type="button" onClick={() => setQA(q => ({ ...q, night_shifts: v }))}
+                                className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-all ${
+                                  qa.night_shifts === v ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-white/3 border-white/10 text-[#64748b]'
+                                }`}>{v}</button>
+                            ))}
+                          </div>
+                        </Field>
+                        <Field label="Valid passport?">
+                          <div className="flex gap-2 mt-1">
+                            {['Yes', 'No'].map(v => (
+                              <button key={v} type="button" onClick={() => setQA(q => ({ ...q, valid_passport: v }))}
+                                className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-all ${
+                                  qa.valid_passport === v ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-white/3 border-white/10 text-[#64748b]'
+                                }`}>{v}</button>
+                            ))}
+                          </div>
+                        </Field>
+                      </div>
+
+                      <Field label="Fresher or Experienced?">
+                        <div className="flex gap-2 mt-1">
+                          {['Fresher', 'Experienced'].map(v => (
+                            <button key={v} type="button" onClick={() => setQA(q => ({ ...q, fresher_or_experienced: v }))}
+                              className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-all ${
+                                qa.fresher_or_experienced === v ? 'bg-violet-500/20 border-violet-500/50 text-violet-300' : 'bg-white/3 border-white/10 text-[#64748b]'
+                              }`}>{v}</button>
+                          ))}
+                        </div>
+                      </Field>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <Field label="Highest Qualification">
+                          <input className={inputCls} placeholder="B.Tech, MBA, MCA..." value={qa.highest_qualification} onChange={e => setQA(q => ({ ...q, highest_qualification: e.target.value }))} />
+                        </Field>
+                        <Field label="Current Employer">
+                          <input className={inputCls} placeholder="Company name or Fresher" value={qa.current_employer} onChange={e => setQA(q => ({ ...q, current_employer: e.target.value }))} />
+                        </Field>
                       </div>
                     </div>
                   </div>
                 )}
+
               </motion.div>
             </AnimatePresence>
 
@@ -290,13 +637,18 @@ export default function OnboardingPage() {
                 Back
               </button>
 
-              {step < 2 ? (
-                <button onClick={goNext} className="btn-primary py-2.5 px-6">
+              {step < 3 ? (
+                <button onClick={goNext} className="btn-primary py-2.5 px-6 flex items-center gap-2">
                   Continue
                   <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
-                <button onClick={handleSubmit} disabled={isSubmitting} id="onboarding-finish" className="btn-primary py-2.5 px-6">
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  id="onboarding-finish"
+                  className="btn-primary py-2.5 px-6 flex items-center gap-2"
+                >
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -305,7 +657,7 @@ export default function OnboardingPage() {
                   ) : (
                     <>
                       <Check className="w-4 h-4" />
-                      Save & Go to Dashboard
+                      Save &amp; Go to Dashboard
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}

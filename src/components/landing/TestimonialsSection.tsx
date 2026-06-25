@@ -8,7 +8,7 @@ const testimonials = [
   {
     name: 'Sarah Chen',
     role: 'Software Engineer',
-    company: 'Now at Google',
+    company: 'Now at a Top Tech MNC',
     avatar: 'SC',
     avatarColor: 'hsl(230, 70%, 55%)',
     rating: 5,
@@ -17,7 +17,7 @@ const testimonials = [
   {
     name: 'Marcus Williams',
     role: 'Product Manager',
-    company: 'Now at Stripe',
+    company: 'Product Manager at a Series B Startup',
     avatar: 'MW',
     avatarColor: 'hsl(160, 70%, 40%)',
     rating: 5,
@@ -26,7 +26,7 @@ const testimonials = [
   {
     name: 'Priya Sharma',
     role: 'Data Scientist',
-    company: 'Now at OpenAI',
+    company: 'Data Scientist at a Leading AI Firm',
     avatar: 'PS',
     avatarColor: 'hsl(280, 70%, 55%)',
     rating: 5,
@@ -35,7 +35,7 @@ const testimonials = [
   {
     name: 'James O\'Brien',
     role: 'UX Designer',
-    company: 'Now at Figma',
+    company: 'UX Lead at a Global Design Studio',
     avatar: 'JO',
     avatarColor: 'hsl(20, 80%, 55%)',
     rating: 5,
@@ -44,7 +44,7 @@ const testimonials = [
   {
     name: 'Lin Wei',
     role: 'Backend Developer',
-    company: 'Now at Shopify',
+    company: 'Backend Dev at a Major eCommerce Platform',
     avatar: 'LW',
     avatarColor: 'hsl(340, 70%, 55%)',
     rating: 5,
@@ -53,7 +53,7 @@ const testimonials = [
   {
     name: 'Amara Osei',
     role: 'Marketing Lead',
-    company: 'Now at HubSpot',
+    company: 'Marketing Lead at a Growth-Stage Startup',
     avatar: 'AO',
     avatarColor: 'hsl(195, 80%, 45%)',
     rating: 5,
@@ -123,9 +123,9 @@ export default function TestimonialsSection() {
           className="inline-flex items-center gap-2 mb-4"
         >
           <span className="badge badge-amber">
-            <Star className="w-3 h-3 fill-amber-400" />
-            12,000+ Happy Users
-          </span>
+              <Star className="w-3 h-3 fill-amber-400" />
+              Be among the first to try AutoApply AI
+            </span>
         </motion.div>
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
