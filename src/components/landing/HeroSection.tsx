@@ -163,8 +163,9 @@ export default function HeroSection() {
       if (res.ok) {
         const extracted = await res.json()
         // Store extracted data for onboarding pre-fill
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && extracted) {
           sessionStorage.setItem('fmj_extracted', JSON.stringify(extracted))
+          localStorage.removeItem('fmj_onboarding_draft') // Clear any old draft
         }
         setExtractionStep('Profile extracted! Redirecting...')
         await new Promise(r => setTimeout(r, 600))

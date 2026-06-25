@@ -114,50 +114,87 @@ export default function OnboardingPage() {
     current_employer: '',
   })
 
-  // Pre-fill from AI extraction stored in sessionStorage
+  // Pre-fill from local draft or AI extraction
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const raw = sessionStorage.getItem('fmj_extracted')
-    if (!raw) return
+    
+    let draft: any = null
     try {
-      const ex = JSON.parse(raw)
+      const rawDraft = localStorage.getItem('fmj_onboarding_draft')
+      if (rawDraft) draft = JSON.parse(rawDraft)
+    } catch { /* ignore */ }
+
+    let ex: any = null
+    try {
+      const raw = sessionStorage.getItem('fmj_extracted')
+      if (raw) ex = JSON.parse(raw)
+    } catch { /* ignore */ }
+
+    const data = draft || ex
+    if (!data) return
+
+    try {
       setPersonal(p => ({
         ...p,
-        first_name: ex.first_name || p.first_name,
-        last_name: ex.last_name || p.last_name,
-        middle_name: ex.middle_name || p.middle_name,
-        email: ex.email || p.email,
-        mobile: ex.mobile || p.mobile,
-        gender: ex.gender || p.gender,
-        dob: ex.dob || p.dob,
-        current_city: ex.current_city || p.current_city,
-        full_address: ex.full_address || p.full_address,
-        linkedin_url: ex.linkedin_url || p.linkedin_url,
-        portfolio_url: ex.portfolio_url || p.portfolio_url,
-        current_ctc: ex.current_ctc || p.current_ctc,
-        expected_ctc: ex.expected_ctc || p.expected_ctc,
-        notice_period: ex.notice_period || p.notice_period,
-        willing_to_relocate: ex.willing_to_relocate ?? p.willing_to_relocate,
-        experience_years: ex.experience_years?.toString() || p.experience_years,
+        first_name: data.first_name || p.first_name,
+        last_name: data.last_name || p.last_name,
+        middle_name: data.middle_name || p.middle_name,
+        email: data.email || p.email,
+        mobile: data.mobile || p.mobile,
+        gender: data.gender || p.gender,
+        dob: data.dob || p.dob,
+        current_city: data.current_city || p.current_city,
+        full_address: data.full_address || p.full_address,
+        linkedin_url: data.linkedin_url || p.linkedin_url,
+        portfolio_url: data.portfolio_url || p.portfolio_url,
+        current_ctc: data.current_ctc || p.current_ctc,
+        expected_ctc: data.expected_ctc || p.expected_ctc,
+        notice_period: data.notice_period || p.notice_period,
+        willing_to_relocate: data.willing_to_relocate ?? p.willing_to_relocate,
+        experience_years: data.experience_years?.toString() || p.experience_years,
       }))
-      if (ex.target_roles?.length) setRoles(ex.target_roles.slice(0, 5))
-      if (ex.experience) setExperience(ex.experience)
-      if (ex.projects) setProjects(ex.projects)
-      if (ex.skills) setSkills(ex.skills)
+      if (data.target_roles?.length) setRoles(data.target_roles.slice(0, 5))
+      if (data.experience) setExperience(data.experience)
+      if (data.projects) setProjects(data.projects)
+      if (data.skills) setSkills(data.skills)
+      if (data.locations) setLocations(data.locations)
+      if (data.work_type) setWorkType(data.work_type)
 
-      if (ex.common_answers) {
+      if (data.common_answers) {
         setQA(q => ({
           ...q,
-          years_in_primary_skill: ex.common_answers.years_in_primary_skill || q.years_in_primary_skill,
-          fresher_or_experienced: ex.is_fresher ? 'Fresher' : 'Experienced',
-          highest_qualification: ex.common_answers.highest_qualification || ex.highest_qualification || q.highest_qualification,
-          current_employer: ex.common_answers.current_employer || ex.current_employer || q.current_employer,
+          years_in_primary_skill: data.common_answers.years_in_primary_skill || q.years_in_primary_skill,
+          fresher_or_experienced: data.is_fresher ? 'Fresher' : (data.common_answers.fresher_or_experienced || 'Experienced'),
+          highest_qualification: data.common_answers.highest_qualification || data.highest_qualification || q.highest_qualification,
+          current_employer: data.common_answers.current_employer || data.current_employer || q.current_employer,
         }))
       }
     } catch { /* ignore */ }
   }, [])
 
   const setP = (key: string, val: string | boolean) => setPersonal(p => ({ ...p, [key]: val }))
+
+  // ─── Autosave Draft ─────────────────────────────────────────
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    // Wait a tick to ensure state is actually populated, avoid overwriting with empties on first render
+    const timer = setTimeout(() => {
+      const draft = {
+        first_name: personal.first_name, last_name: personal.last_name, middle_name: personal.middle_name,
+        gender: personal.gender, dob: personal.dob, mobile: personal.mobile, email: personal.email,
+        current_city: personal.current_city, full_address: personal.full_address,
+        linkedin_url: personal.linkedin_url, portfolio_url: personal.portfolio_url,
+        current_ctc: personal.current_ctc, expected_ctc: personal.expected_ctc,
+        notice_period: personal.notice_period, willing_to_relocate: personal.willing_to_relocate,
+        experience_years: personal.experience_years,
+        target_roles: roles, work_type, locations,
+        experience, projects, skills,
+        common_answers: qa
+      }
+      localStorage.setItem('fmj_onboarding_draft', JSON.stringify(draft))
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [personal, roles, work_type, locations, experience, projects, skills, qa])
   const goNext = () => {
     const e = validateStep(step)
     if (Object.keys(e).length > 0) { setErrors(e); return }
@@ -280,6 +317,7 @@ export default function OnboardingPage() {
       localStorage.setItem('fmj_roles', JSON.stringify(roles))
       localStorage.setItem('fmj_locations', JSON.stringify(locations))
       localStorage.setItem('fmj_onboarded', 'true')
+      localStorage.removeItem('fmj_onboarding_draft')
 
       // Fire-and-forget: upload resume to N8N if present
       if (resumeFile) {
