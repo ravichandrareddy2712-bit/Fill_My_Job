@@ -246,7 +246,7 @@ export default function OnboardingPage() {
         work_type,
         search_links: searchLinks,
         // Resume data from extraction
-        experience: (extracted.experience as unknown[]) || [],
+        experience: (extracted.experience as Array<{ company: string; role: string; duration: string }>) || [],
         internships: (extracted.internships as unknown[]) || [],
         projects: (extracted.projects as unknown[]) || [],
         education: (extracted.education as unknown[]) || [],
