@@ -36,9 +36,8 @@ export interface UserProfile {
   resume_url?: string
   resume_text?: string
   skills?: string[]
-  experience?: Array<{ company: string; role: string; duration: string }>
-  internships?: unknown[]
-  projects?: unknown[]
+  experience?: Array<{ company: string; role: string; start_date?: string; end_date?: string; location?: string; description?: string; duration?: string }>
+  projects?: Array<{ name: string; start_date?: string; end_date?: string; description?: string; link?: string }>
   education?: unknown[]
   certifications?: unknown[]
   common_answers?: Record<string, string>

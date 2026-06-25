@@ -70,6 +70,9 @@ function CountUp({ target, duration = 1.5 }: { target: number; duration?: number
 // ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_locations JSONB;
 // ALTER TABLE users ADD COLUMN IF NOT EXISTS work_type TEXT;
 // ALTER TABLE users ADD COLUMN IF NOT EXISTS experience_years INTEGER;
+// ALTER TABLE users ADD COLUMN IF NOT EXISTS experience JSONB;
+// ALTER TABLE users ADD COLUMN IF NOT EXISTS projects JSONB;
+// ALTER TABLE users ADD COLUMN IF NOT EXISTS skills JSONB;
 // ALTER TABLE users ADD COLUMN IF NOT EXISTS middle_name TEXT;
 // ALTER TABLE users ADD COLUMN IF NOT EXISTS full_address TEXT;
 // ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;
