@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   BrainCircuit, User, Briefcase, CheckCircle2,
-  ArrowRight, ArrowLeft, Check, X, Plus, ChevronDown, BookOpen,
+  ArrowRight, ArrowLeft, Check, X, Plus, ChevronDown, BookOpen, Upload, FileText, Loader2,
 } from 'lucide-react'
 import { useFileContext } from '@/context/FileContext'
 import { saveProfile } from '@/lib/supabase'
