@@ -36,7 +36,8 @@ const steps = [
   { id: 2, title: 'Personal Details', icon: User, description: 'Basic info about you' },
   { id: 3, title: 'Target Roles', icon: Briefcase, description: 'What you\'re looking for' },
   { id: 4, title: 'Experience & Projects', icon: BookOpen, description: 'Resume Details' },
-  { id: 5, title: 'Confirm & Q&A', icon: CheckCircle2, description: 'Review & common answers' },
+  { id: 5, title: 'Skills', icon: BrainCircuit, description: 'Tools & Languages' },
+  { id: 6, title: 'Confirm & Q&A', icon: CheckCircle2, description: 'Review & common answers' },
 ]
 
 // ─── Field Component ──────────────────────────────────────────
@@ -73,6 +74,7 @@ export default function OnboardingPage() {
   const [roleSearch, setRoleSearch] = useState('')
   const [customRole, setCustomRole] = useState('')
   const [locationInput, setLocationInput] = useState('')
+  const [skillInput, setSkillInput] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   // ─── Step 1: Personal Details
@@ -292,7 +294,7 @@ export default function OnboardingPage() {
     if (Object.keys(e).length > 0) { setErrors(e); return }
     setErrors({})
     setDirection(1)
-    setStep(s => Math.min(s + 1, 5))
+    setStep(s => Math.min(s + 1, 6))
   }
   const goPrev = () => { setDirection(-1); setStep(s => Math.max(s - 1, 1)); setErrors({}) }
 
@@ -320,6 +322,10 @@ export default function OnboardingPage() {
     if (r && !roles.includes(r)) { setRoles(prev => [...prev, r]); setRoleSearch(''); setCustomRole('') }
   }
 
+  const addSkill = () => {
+    const s = skillInput.trim()
+    if (s && !skills.includes(s)) { setSkills(prev => [...prev, s]); setSkillInput('') }
+  }
   const addLocation = () => {
     const locs = locationInput.split(',').map(l => l.trim()).filter(Boolean)
     setLocations(prev => [...new Set([...prev, ...locs])])
@@ -330,7 +336,7 @@ export default function OnboardingPage() {
     roleSearch ? list.filter(r => r.toLowerCase().includes(roleSearch.toLowerCase())) : list
 
   const handleSubmit = async () => {
-    const e = validateStep(5)
+    const e = validateStep(6)
     if (Object.keys(e).length > 0) { setErrors(e); return }
 
     setIsSubmitting(true)
@@ -445,7 +451,7 @@ export default function OnboardingPage() {
           </div>
           <span className="font-display font-bold text-white text-sm">FindMyJob.AI</span>
         </Link>
-        <span className="text-[#64748b] text-sm">Step {step} of 5</span>
+        <span className="text-[#64748b] text-sm">Step {step} of 6</span>
       </div>
 
       <div className="flex-1 flex items-start justify-center px-4 py-4 relative z-10">
@@ -768,15 +774,7 @@ export default function OnboardingPage() {
                     <h2 className="font-display font-bold text-2xl text-white mb-1">Experience & Projects</h2>
                     <p className="text-[#64748b] text-sm mb-5">Review and add your work experience and projects.</p>
 
-                    {/* Extracted Skills */}
-                    {skills.length > 0 && (
-                      <div className="mb-6">
-                        <p className="text-[#64748b] text-xs font-medium mb-2 uppercase tracking-wider">Extracted Skills</p>
-                        <div className="flex flex-wrap gap-2">
-                          {skills.map((s, i) => <span key={i} className="text-xs px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-white">{s}</span>)}
-                        </div>
-                      </div>
-                    )}
+
 
                     {/* Experience Section */}
                     <div className="mb-8">
@@ -944,7 +942,7 @@ export default function OnboardingPage() {
                 Back
               </button>
 
-              {step < 5 ? (
+              {step < 6 ? (
                 <button onClick={goNext} className="btn-primary py-2.5 px-6 flex items-center gap-2">
                   Continue
                   <ArrowRight className="w-4 h-4" />
