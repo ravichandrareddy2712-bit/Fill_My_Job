@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useFileContext } from '@/context/FileContext'
 import { saveProfile } from '@/lib/supabase'
+import PREDEFINED_SKILLS from '@/data/skills.json'
 
 // ─── Role Lists ───────────────────────────────────────────────
 const TECH_ROLES = [
@@ -322,8 +323,8 @@ export default function OnboardingPage() {
     if (r && !roles.includes(r)) { setRoles(prev => [...prev, r]); setRoleSearch(''); setCustomRole('') }
   }
 
-  const addSkill = () => {
-    const s = skillInput.trim()
+  const addSkill = (skillToAdd?: string) => {
+    const s = (skillToAdd || skillInput).trim()
     if (s && !skills.includes(s)) { setSkills(prev => [...prev, s]); setSkillInput('') }
   }
   const addLocation = () => {
@@ -835,10 +836,24 @@ export default function OnboardingPage() {
                     <p className="text-[#64748b] text-sm mb-5">Add all your programming languages, frameworks, tools, and soft skills.</p>
                     
                     <Field label="Add a Skill (press Enter)">
-                      <div className="flex gap-2 mb-4">
-                        <input className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-[#4b5563] outline-none focus:border-indigo-500/60 focus:bg-white/7 transition-all" placeholder="e.g. React, Python, AWS..." value={skillInput} onChange={e => setSkillInput(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill() } }} />
-                        <button onClick={addSkill} className="btn-secondary py-2.5 px-4 text-sm whitespace-nowrap">Add</button>
+                      <div className="relative mb-4">
+                        <div className="flex gap-2">
+                          <input className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-[#4b5563] outline-none focus:border-indigo-500/60 focus:bg-white/7 transition-all" placeholder="e.g. React, Python, AWS..." value={skillInput} onChange={e => setSkillInput(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill() } }} />
+                          <button onClick={() => addSkill()} className="btn-secondary py-2.5 px-4 text-sm whitespace-nowrap">Add</button>
+                        </div>
+                        {skillInput.trim().length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-[#0f172a] border border-white/10 rounded-xl shadow-xl max-h-48 overflow-y-auto overflow-x-hidden p-1 custom-scrollbar">
+                            {PREDEFINED_SKILLS.filter(s => s.toLowerCase().includes(skillInput.toLowerCase()) && !skills.includes(s)).slice(0, 20).map(s => (
+                              <button key={s} onClick={() => addSkill(s)} className="w-full text-left px-3 py-2 text-sm text-[#94a3b8] hover:bg-white/5 hover:text-white rounded-lg transition-colors">
+                                {s}
+                              </button>
+                            ))}
+                            {PREDEFINED_SKILLS.filter(s => s.toLowerCase().includes(skillInput.toLowerCase()) && !skills.includes(s)).length === 0 && (
+                              <div className="px-3 py-2 text-sm text-[#64748b] italic">Press Enter to add "{skillInput}"</div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </Field>
 
