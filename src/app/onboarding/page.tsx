@@ -831,6 +831,33 @@ export default function OnboardingPage() {
                 {/* ══════════════════════════ STEP 5 ══════════════════════════ */}
                 {step === 5 && (
                   <div>
+                    <h2 className="font-display font-bold text-2xl text-white mb-1">Your Skills</h2>
+                    <p className="text-[#64748b] text-sm mb-5">Add all your programming languages, frameworks, tools, and soft skills.</p>
+                    
+                    <Field label="Add a Skill (press Enter)">
+                      <div className="flex gap-2 mb-4">
+                        <input className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-[#4b5563] outline-none focus:border-indigo-500/60 focus:bg-white/7 transition-all" placeholder="e.g. React, Python, AWS..." value={skillInput} onChange={e => setSkillInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill() } }} />
+                        <button onClick={addSkill} className="btn-secondary py-2.5 px-4 text-sm whitespace-nowrap">Add</button>
+                      </div>
+                    </Field>
+
+                    <div className="flex flex-wrap gap-2 min-h-32 content-start mb-8">
+                      {skills.length === 0 ? (
+                        <p className="text-[#64748b] text-xs italic">No skills added yet.</p>
+                      ) : skills.map(s => (
+                        <span key={s} className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-medium group">
+                          {s}
+                          <button onClick={() => setSkills(prev => prev.filter(x => x !== s))} className="opacity-60 hover:opacity-100 hover:text-rose-400 transition-all"><X className="w-3 h-3" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ══════════════════════════ STEP 6 ══════════════════════════ */}
+                {step === 6 && (
+                  <div>
                     <h2 className="font-display font-bold text-2xl text-white mb-1">Confirm & Common Q&A</h2>
                     <p className="text-[#64748b] text-sm mb-5">Review your details and fill in standard application questions.</p>
 
