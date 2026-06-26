@@ -568,16 +568,6 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {!isExtracting && (
-                <div className="flex justify-center mt-6">
-                  <button
-                    onClick={() => { setDirection(1); setStep(2) }}
-                    className="text-[#94a3b8] hover:text-white transition-colors flex items-center gap-2 text-sm font-medium"
-                  >
-                    Skip and fill manually <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
             </motion.div>
           )}
 
