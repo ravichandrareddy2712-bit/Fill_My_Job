@@ -854,7 +854,15 @@ export default function OnboardingPage() {
                           <p className="text-[#94a3b8] truncate">{personal.linkedin_url || '—'}</p>
                         </div>
                         <div className="col-span-2 mt-2 pt-2 border-t border-indigo-500/10">
-                          <p className="text-indigo-300 font-semibold mb-2 text-xs">Resume Details</p>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-indigo-300 font-semibold text-xs">Resume Details</p>
+                            {resumeFile && (
+                              <span className="text-[#94a3b8] text-[10px] flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
+                                <FileText className="w-3 h-3 text-indigo-400" />
+                                <span className="truncate max-w-[150px]">{resumeFile.name}</span>
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-4 text-[#94a3b8]">
                             <span><strong className="text-white">{experience.length}</strong> Experiences</span>
                             <span><strong className="text-white">{projects.length}</strong> Projects</span>
