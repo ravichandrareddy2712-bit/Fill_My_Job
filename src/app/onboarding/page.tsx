@@ -765,8 +765,8 @@ export default function OnboardingPage() {
                 )}
 
                 
-                {/* ══════════════════════════ STEP 3 ══════════════════════════ */}
-                {step === 5 && (
+                {/* ══════════════════════════ STEP 4 ══════════════════════════ */}
+                {step === 4 && (
                   <div>
                     <h2 className="font-display font-bold text-2xl text-white mb-1">Experience & Projects</h2>
                     <p className="text-[#64748b] text-sm mb-5">Review and add your work experience and projects.</p>
@@ -843,7 +843,7 @@ export default function OnboardingPage() {
                   </div>
                 )}
 
-                {/* ══════════════════════════ STEP 4 ══════════════════════════ */}
+                {/* ══════════════════════════ STEP 5 ══════════════════════════ */}
                 {step === 5 && (
                   <div>
                     <h2 className="font-display font-bold text-2xl text-white mb-1">Confirm & Common Q&A</h2>
@@ -947,7 +947,7 @@ export default function OnboardingPage() {
                 Back
               </button>
 
-              {step < 4 ? (
+              {step < 5 ? (
                 <button onClick={goNext} className="btn-primary py-2.5 px-6 flex items-center gap-2">
                   Continue
                   <ArrowRight className="w-4 h-4" />
