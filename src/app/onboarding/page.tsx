@@ -387,9 +387,6 @@ export default function OnboardingPage() {
         experience: experience,
         projects: projects,
         skills: Array.from(new Set([...roles, ...skills])),
-        internships: (extracted.internships as unknown[]) || [],
-        education: (extracted.education as unknown[]) || [],
-        certifications: (extracted.certifications as unknown[]) || [],
         resume_text: (extracted.resume_text as string) || '',
         // Step 3
         common_answers: {
