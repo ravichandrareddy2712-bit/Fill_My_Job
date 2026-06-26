@@ -850,7 +850,9 @@ export default function OnboardingPage() {
                               </button>
                             ))}
                             {PREDEFINED_SKILLS.filter(s => s.toLowerCase().includes(skillInput.toLowerCase()) && !skills.includes(s)).length === 0 && (
-                              <div className="px-3 py-2 text-sm text-[#64748b] italic">Press Enter to add "{skillInput}"</div>
+                              <button onClick={() => addSkill(skillInput)} className="w-full text-left px-3 py-2 text-sm text-[#94a3b8] hover:bg-white/5 hover:text-white rounded-lg transition-colors italic">
+                                Add "{skillInput}"
+                              </button>
                             )}
                           </div>
                         )}
