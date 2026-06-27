@@ -159,8 +159,11 @@ export default function DashboardPage() {
       const run = await createAgentRun(sessionId)
       if (run) setAgentRun(run)
 
-      // Fire the n8n webhook
-      await fetch('/api/n8n-webhook', {
+      // Start polling for live updates while webhook runs
+      pollingRef.current = setInterval(pollData, 5000)
+
+      // Fire the n8n webhook and AWAIT it
+      const res = await fetch('/api/n8n-webhook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -172,10 +175,31 @@ export default function DashboardPage() {
         }),
       })
 
-      // Start polling
-      pollingRef.current = setInterval(pollData, 5000)
+      if (!res.ok) {
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current)
+          pollingRef.current = null
+        }
+        setAgentRun(prev => prev ? { ...prev, status: 'error', message: 'Failed to trigger workflow' } : null)
+        return
+      }
+
+      // If it succeeds, stop polling and update status to done (if not already handled by pollData)
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+      setAgentRun(prev => prev ? { ...prev, status: 'done', message: 'All tasks completed.' } : null)
+      
+      // Reload stats
+      await loadData(sessionId)
     } catch (err) {
       console.error('Start agent error:', err)
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+      setAgentRun(prev => prev ? { ...prev, status: 'error', message: 'Failed to connect to workflow' } : null)
     } finally {
       setStarting(false)
     }

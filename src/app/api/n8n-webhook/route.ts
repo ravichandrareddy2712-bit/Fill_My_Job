@@ -6,15 +6,20 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Fire-and-forget: call n8n webhook but don't wait for it to complete
-    // The n8n workflow runs asynchronously and updates Supabase as it progresses
-    fetch(N8N_WEBHOOK_URL, {
+    // Await the webhook so we can return an error if it fails
+    const res = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    }).catch(err => {
-      console.error('n8n webhook fire-and-forget error:', err)
     })
+
+    if (!res.ok) {
+      console.error('n8n webhook error:', res.status)
+      return NextResponse.json(
+        { success: false, message: `Failed to trigger agent: ${res.status}` },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({ success: true, message: 'Agent triggered successfully' })
   } catch (err) {
