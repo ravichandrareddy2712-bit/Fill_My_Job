@@ -73,8 +73,11 @@ export default function DashboardPage() {
 
   // ─── Poll for updates while agent is running ───────────────
   const pollData = useCallback(async () => {
-    const sessionId = localStorage.getItem('fmj_session_id')
-    if (!sessionId) return
+    const { createClient } = await import('@/utils/supabase/client')
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const sessionId = user.id
 
     const [apps, s, run] = await Promise.all([
       getApplications(sessionId),
@@ -100,11 +103,15 @@ export default function DashboardPage() {
     const init = async () => {
       setLoading(true)
       try {
-        const sessionId = localStorage.getItem('fmj_session_id')
-        if (!sessionId) {
-          router.replace('/onboarding')
+        const { createClient } = await import('@/utils/supabase/client')
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.replace('/')
           return
         }
+        const sessionId = user.id
+        localStorage.setItem('fmj_session_id', sessionId)
         const p = await getProfile(sessionId)
         if (!p) {
           router.replace('/onboarding')
@@ -139,8 +146,11 @@ export default function DashboardPage() {
     setStarting(true)
 
     try {
-      const sessionId = localStorage.getItem('fmj_session_id')
-      if (!sessionId) { router.push('/onboarding'); return }
+      const { createClient } = await import('@/utils/supabase/client')
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/onboarding'); return }
+      const sessionId = user.id
 
       const p = await getProfile(sessionId)
       if (!p || !p.first_name) { router.push('/onboarding'); return }
@@ -343,10 +353,24 @@ export default function DashboardPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-display font-semibold text-white text-lg">Your Profile</h2>
-            <Link href="/onboarding" className="btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5">
-              <RefreshCw className="w-3 h-3" />
-              Edit
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/onboarding" className="btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5">
+                <RefreshCw className="w-3 h-3" />
+                Edit
+              </Link>
+              <button 
+                onClick={async () => {
+                  const { createClient } = await import('@/utils/supabase/client')
+                  const supabase = createClient()
+                  await supabase.auth.signOut()
+                  localStorage.removeItem('fmj_session_id')
+                  router.replace('/')
+                }}
+                className="btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 border-rose-500/30 text-rose-400 hover:bg-rose-500/10"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
 
           {profile ? (

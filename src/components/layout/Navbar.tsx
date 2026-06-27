@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, Menu, X, BrainCircuit } from 'lucide-react'
+import { createClient } from '@/utils/supabase/client'
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -17,6 +18,16 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
+  const supabase = createClient()
+
+  const handleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+  }
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -67,23 +78,16 @@ export default function Navbar() {
 
           {/* CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <div className="relative group">
-              <button
-                disabled
-                className="btn-secondary text-sm py-2.5 px-5 opacity-50 cursor-not-allowed"
-                aria-label="Sign in - coming soon"
-              >
-                Sign in
-              </button>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg bg-[#1a1a2e] border border-white/10 text-xs text-[#94a3b8] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                Google Sign In coming soon
-                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-2 h-2 bg-[#1a1a2e] border-r border-b border-white/10 rotate-45" />
-              </div>
-            </div>
-            <Link href="/onboarding" className="btn-primary text-sm py-2.5 px-5">
+            <button
+              onClick={handleLogin}
+              className="btn-secondary text-sm py-2.5 px-5"
+            >
+              Sign in
+            </button>
+            <button onClick={handleLogin} className="btn-primary text-sm py-2.5 px-5">
               <Sparkles className="w-4 h-4" />
               Get Started Free
-            </Link>
+            </button>
           </div>
 
           {/* Mobile menu button */}
@@ -122,13 +126,13 @@ export default function Navbar() {
                 </Link>
               ))}
               <div className="mt-3 pt-3 border-t border-white/8 flex flex-col gap-2">
-                <Link href="/onboarding" onClick={() => setMobileOpen(false)} className="btn-secondary text-sm text-center justify-center">
+                <button onClick={handleLogin} className="btn-secondary text-sm text-center justify-center">
                   Sign in
-                </Link>
-                <Link href="/onboarding" onClick={() => setMobileOpen(false)} className="btn-primary text-sm text-center justify-center">
+                </button>
+                <button onClick={handleLogin} className="btn-primary text-sm text-center justify-center">
                   <Sparkles className="w-4 h-4" />
                   Get Started Free
-                </Link>
+                </button>
               </div>
             </div>
           </motion.div>

@@ -26,8 +26,11 @@ export default function JobMatchesPage() {
   const isAgentActive = agentRun?.status === 'running' || agentRun?.status === 'scraping' || agentRun?.status === 'applying'
 
   const loadJobs = async () => {
-    const sessionId = localStorage.getItem('fmj_session_id')
-    if (!sessionId) return
+    const { createClient } = await import('@/utils/supabase/client')
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const sessionId = user.id
 
     const [j, run] = await Promise.all([
       getScrapedJobs(sessionId),

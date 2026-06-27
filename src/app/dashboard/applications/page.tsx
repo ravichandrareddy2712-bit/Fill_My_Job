@@ -30,8 +30,11 @@ export default function ApplicationsPage() {
   const isAgentActive = agentRun?.status === 'running' || agentRun?.status === 'scraping' || agentRun?.status === 'applying'
 
   const loadApps = async () => {
-    const sessionId = localStorage.getItem('fmj_session_id')
-    if (!sessionId) return
+    const { createClient } = await import('@/utils/supabase/client')
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const sessionId = user.id
     const [apps, run] = await Promise.all([
       getApplications(sessionId),
       getLatestAgentRun(sessionId),

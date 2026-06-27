@@ -342,7 +342,11 @@ export default function OnboardingPage() {
 
     setIsSubmitting(true)
     try {
-      const sessionId = localStorage.getItem('fmj_session_id') || (Date.now().toString() + '-' + Math.random().toString(36).substring(2, 8))
+      const { createClient } = await import('@/utils/supabase/client')
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('You must be logged in to save your profile.')
+      const sessionId = user.id
 
       // Get extracted data if present
       let extracted: Record<string, unknown> = {}

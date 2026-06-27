@@ -48,11 +48,24 @@ export default function CTASection() {
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-4">
-              <Link href="/login" id="cta-get-started" className="btn-primary text-base py-4 px-8 animate-pulse-glow">
+              <button
+                onClick={async () => {
+                  const { createClient } = await import('@/utils/supabase/client')
+                  const supabase = createClient()
+                  await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                      redirectTo: `${window.location.origin}/auth/callback`,
+                    },
+                  })
+                }}
+                id="cta-get-started" 
+                className="btn-primary text-base py-4 px-8 animate-pulse-glow"
+              >
                 <Sparkles className="w-5 h-5" />
                 Get Started Free
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </button>
               <Link href="/contact" id="cta-contact" className="btn-secondary text-base py-4 px-8">
                 Talk to Sales
               </Link>

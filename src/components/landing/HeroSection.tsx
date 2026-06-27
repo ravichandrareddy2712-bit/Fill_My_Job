@@ -182,7 +182,16 @@ export default function HeroSection() {
             {/* Upload / Dropzone */}
             <motion.div variants={fadeUp} className="mt-8">
               <button
-                onClick={() => router.push('/onboarding')}
+                onClick={async () => {
+                  const { createClient } = await import('@/utils/supabase/client')
+                  const supabase = createClient()
+                  await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                      redirectTo: `${window.location.origin}/auth/callback`,
+                    },
+                  })
+                }}
                 className="group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#08080f] rounded-xl font-bold text-lg overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] w-full sm:w-auto"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer" />
