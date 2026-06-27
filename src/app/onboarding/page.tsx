@@ -378,7 +378,7 @@ export default function OnboardingPage() {
         experience: experience,
         projects: projects,
         skills: Array.from(new Set([...roles, ...skills])),
-        resume_text: (extracted.resume_text as string) || '',
+        resume_text: ((extracted.resume_text as string) || '').replace(/\0/g, ''),
         // Step 3
         common_answers: {
           years_in_primary_skill: qa.years_in_primary_skill,
