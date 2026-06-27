@@ -44,7 +44,6 @@ export interface UserProfile {
   portal_links?: Record<string, unknown>
   plan?: string
   whatsapp_number?: string
-  search_links?: string[]
   created_at?: string
   updated_at?: string
 }

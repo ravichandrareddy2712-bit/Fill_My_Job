@@ -344,20 +344,6 @@ export default function OnboardingPage() {
     try {
       const sessionId = localStorage.getItem('fmj_session_id') || (Date.now().toString() + '-' + Math.random().toString(36).substring(2, 8))
 
-      // Build search links from roles + locations
-      const searchLinks: string[] = []
-      const effectiveRoles = roles.length > 0 ? roles : ['Software Engineer']
-      const effectiveLocs = locations.length > 0 ? locations : ['Remote']
-      for (const role of effectiveRoles.slice(0, 3)) {
-        for (const loc of effectiveLocs.slice(0, 2)) {
-          const q = encodeURIComponent(role)
-          const l = encodeURIComponent(loc)
-          searchLinks.push(`https://in.indeed.com/jobs?q=${q}&l=${l}`)
-          const naukriLoc = loc.toLowerCase() === 'remote' ? 'remote' : loc.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-          searchLinks.push(`https://www.naukri.com/${naukriLoc}-jobs?k=${q}`)
-        }
-      }
-
       // Get extracted data if present
       let extracted: Record<string, unknown> = {}
       try {
@@ -377,7 +363,6 @@ export default function OnboardingPage() {
         email: personal.email,
         current_city: personal.current_city,
         full_address: personal.full_address,
-        address: personal.full_address, // legacy compat
         linkedin_url: personal.linkedin_url,
         portfolio_url: personal.portfolio_url,
         current_ctc: personal.current_ctc,
@@ -389,7 +374,6 @@ export default function OnboardingPage() {
         target_roles: roles,
         preferred_locations: locations,
         work_type,
-        search_links: searchLinks,
         // Resume data from extraction
         experience: experience,
         projects: projects,
