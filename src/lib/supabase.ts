@@ -50,7 +50,7 @@ export interface UserProfile {
 
 /** Save or upsert a profile (merges on session_id) */
 export async function saveProfile(data: Partial<UserProfile>): Promise<UserProfile | null> {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/users?on_conflict=session_id`, {
     method: 'POST',
     headers: {
       ...headers(),
