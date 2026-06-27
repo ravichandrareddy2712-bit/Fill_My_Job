@@ -48,7 +48,7 @@ export default function CTASection() {
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-4">
-              <Link href="/onboarding" id="cta-get-started" className="btn-primary text-base py-4 px-8 animate-pulse-glow">
+              <Link href="/login" id="cta-get-started" className="btn-primary text-base py-4 px-8 animate-pulse-glow">
                 <Sparkles className="w-5 h-5" />
                 Get Started Free
                 <ArrowRight className="w-4 h-4" />

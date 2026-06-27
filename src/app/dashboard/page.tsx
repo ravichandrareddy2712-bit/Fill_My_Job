@@ -252,110 +252,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#08080f] flex">
+    <div className="p-6">
 
       {/* Toast */}
       <AnimatePresence>
-        {toastMsg && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-xl glass-strong border border-indigo-500/30 text-white text-sm font-medium shadow-xl"
-          >
-            {toastMsg}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Sidebar */}
-      <>
-        {sidebarOpen && (
-          <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)} />
-        )}
-        <aside className={`fixed md:sticky top-0 left-0 h-screen w-64 z-40 flex flex-col border-r border-white/5 bg-[rgba(8,8,15,0.95)] backdrop-blur-xl transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-          {/* Logo */}
-          <div className="p-6 border-b border-white/5">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-                <BrainCircuit className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex flex-col leading-none">
-                <span className="font-display font-bold text-[14px] text-white">FindMyJob</span>
-                <span className="font-display font-bold text-[10px] gradient-text">.AI</span>
-              </div>
-            </Link>
-          </div>
-
-          {/* Nav */}
-          <nav className="flex-1 p-4 space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
-                    item.active
-                      ? 'bg-indigo-500/15 text-white border border-indigo-500/20'
-                      : 'text-[#64748b] hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${item.active ? 'text-indigo-400' : 'text-[#4b5563] group-hover:text-[#94a3b8]'}`} />
-                  {item.label}
-                </Link>
-              )
-            })}
-          </nav>
-
-          {/* User */}
-          <div className="p-4 border-t border-white/5">
-            <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group">
-              <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-white text-xs font-bold">
-                {userInitials}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-xs font-semibold truncate">{userName}</p>
-                <p className="text-[#4b5563] text-[10px] truncate">{userEmail}</p>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-[#4b5563] group-hover:text-[#94a3b8]" />
-            </div>
-            <Link href="/" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[#64748b] hover:text-rose-400 text-xs font-medium transition-colors mt-1">
-              <LogOut className="w-3.5 h-3.5" />
-              Sign out
-            </Link>
-          </div>
-        </aside>
-      </>
-
-      {/* Main content */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        {/* Topbar */}
-        <header className="sticky top-0 z-20 flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[rgba(8,8,15,0.85)] backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <button className="md:hidden p-2 rounded-lg glass text-[#64748b]" onClick={() => setSidebarOpen(!sidebarOpen)}>
-              {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-            </button>
-            <div>
-              <h1 className="font-display font-bold text-white text-lg">Dashboard</h1>
-              <p className="text-[#64748b] text-xs">
-                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={refreshData} className="p-2.5 rounded-xl glass text-[#64748b] hover:text-white transition-colors" title="Refresh">
-              <RefreshCw className="w-4 h-4" />
-            </button>
-            <button className="relative p-2.5 rounded-xl glass text-[#64748b] hover:text-white transition-colors">
-              <Bell className="w-4 h-4" />
-              {stats.responses > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full" />}
-            </button>
-          </div>
-        </header>
-
-        {/* Body */}
-        <main className="flex-1 p-6 overflow-auto">
 
           {/* ─── START APPLYING HERO ─── */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
@@ -625,8 +525,6 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-        </main>
-      </div>
     </div>
   )
 }
