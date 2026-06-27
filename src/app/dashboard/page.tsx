@@ -253,10 +253,6 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6">
-
-      {/* Toast */}
-      <AnimatePresence>
-
           {/* ─── START APPLYING HERO ─── */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <div className="relative overflow-hidden rounded-2xl border border-white/8"

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { BrainCircuit, Chrome, Loader2 } from 'lucide-react'
+import { BrainCircuit, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { getProfile } from '@/lib/supabase'
 
@@ -108,7 +108,6 @@ export default function LoginPage() {
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
             <>
-              <Chrome className="w-5 h-5 text-rose-500" />
               Continue with Google
             </>
           )}
