@@ -87,15 +87,6 @@ export default function DashboardPage() {
     setApplications(apps)
     setStats(s)
     if (run) {
-      // Fallback timeout check: if running for > 10 minutes, assume it failed silently
-      if (run.started_at && ['running', 'scraping', 'applying'].includes(run.status || '')) {
-        const runDuration = new Date().getTime() - new Date(run.started_at).getTime()
-        if (runDuration > 10 * 60 * 1000) {
-          run.status = 'error'
-          run.message = 'Agent timed out. Please try again.'
-        }
-      }
-
       setAgentRun(run)
       // Stop polling when agent is done
       if (run.status === 'done' || run.status === 'error') {
