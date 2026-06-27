@@ -155,6 +155,7 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           session_id: sessionId,
+          agent_run_id: run?.id,
           trigger_source: 'dashboard_button',
           roles: p.target_roles || p.skills || [],
           locations: p.preferred_locations || [],
