@@ -969,7 +969,11 @@ export default function OnboardingPage() {
               </button>
 
               {step < 6 ? (
-                <button onClick={goNext} className="btn-primary py-2.5 px-6 flex items-center gap-2">
+                <button 
+                  onClick={goNext} 
+                  disabled={step === 1 && !resumeFile}
+                  className="btn-primary py-2.5 px-6 flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
                   Continue
                   <ArrowRight className="w-4 h-4" />
                 </button>
