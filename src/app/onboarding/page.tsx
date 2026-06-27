@@ -391,7 +391,7 @@ export default function OnboardingPage() {
       }
 
       const saved = await saveProfile(profileData)
-      if (!saved) throw new Error('Failed to save profile to Supabase')
+      if (!saved) throw new Error('Supabase rejected the profile data.')
 
       localStorage.setItem('fmj_session_id', sessionId)
       localStorage.setItem('fmj_roles', JSON.stringify(roles))
@@ -410,9 +410,9 @@ export default function OnboardingPage() {
       }
 
       router.push('/dashboard')
-    } catch (err) {
+    } catch (err: any) {
       console.error('Onboarding submit error:', err)
-      alert('Failed to save your profile. Please try again.')
+      alert(`Failed to save your profile: ${err.message}. Please check console for details.`)
     } finally {
       setIsSubmitting(false)
     }

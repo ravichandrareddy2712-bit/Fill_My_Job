@@ -59,8 +59,9 @@ export async function saveProfile(data: Partial<UserProfile>): Promise<UserProfi
     body: JSON.stringify(data),
   })
   if (!res.ok) {
-    console.error('Supabase saveProfile error:', res.status, await res.text())
-    return null
+    const errorText = await res.text()
+    console.error('Supabase saveProfile error:', res.status, errorText)
+    throw new Error(`Supabase Error ${res.status}: ${errorText}`)
   }
   const rows = await res.json()
   return Array.isArray(rows) ? rows[0] : rows
