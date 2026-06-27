@@ -6,7 +6,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciO
 const headers = () => ({
   'Content-Type': 'application/json',
   'apikey': SUPABASE_ANON_KEY,
-  'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
 })
 
 // ─── Profile ─────────────────────────────────────────────────
