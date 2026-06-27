@@ -1,7 +1,6 @@
 // Lightweight Supabase REST client — no SDK needed
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yzaijkavahxqcovzgszv.supabase.co'
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6YWlqa2F2YWh4cWNvdnpnc3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3ODg1MDksImV4cCI6MjA5NzM2NDUwOX0.vqnro6-VNT042iLxpOh0ZWRl4tnbiw6gApdkMAgEKgk'
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6YWlqa2F2YWh4cWNvdnpnc3p2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTc4ODUwOSwiZXhwIjoyMDk3MzY0NTA5fQ.qrKZAj_BoJkq3ZFI_tey-xiSf3uAe8XE_Jux9ExsHXA'
 
 const headers = () => ({
   'Content-Type': 'application/json',
@@ -79,6 +78,29 @@ export async function getProfile(sessionId?: string): Promise<UserProfile | null
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null
 }
 
+// ─── Scraped Jobs ─────────────────────────────────────────────
+export interface ScrapedJob {
+  id?: string
+  session_id?: string
+  job_title?: string
+  company?: string
+  location?: string
+  portal?: string
+  apply_link?: string
+  apply_type?: string
+  match_score?: number
+  date_scraped?: string
+  status?: string // 'Found', 'Applied', 'Skipped', 'Failed'
+}
+
+/** Get all scraped jobs for a session, ordered newest first */
+export async function getScrapedJobs(sessionId: string): Promise<ScrapedJob[]> {
+  const url = `${SUPABASE_URL}/rest/v1/scraped_jobs?session_id=eq.${encodeURIComponent(sessionId)}&select=*&order=date_scraped.desc,id.desc&limit=200`
+  const res = await fetch(url, { headers: headers() })
+  if (!res.ok) return []
+  return res.json()
+}
+
 // ─── Applications ─────────────────────────────────────────────
 export interface Application {
   id?: string
@@ -102,19 +124,86 @@ export async function getApplications(sessionId: string): Promise<Application[]>
   return res.json()
 }
 
-/** Get application stats for dashboard cards */
+// ─── Agent Runs ───────────────────────────────────────────────
+export interface AgentRun {
+  id?: string
+  session_id?: string
+  status?: string // 'running', 'scraping', 'applying', 'done', 'error'
+  message?: string
+  jobs_found?: number
+  jobs_applied?: number
+  started_at?: string
+  finished_at?: string
+}
+
+/** Get the latest agent run for a session */
+export async function getLatestAgentRun(sessionId: string): Promise<AgentRun | null> {
+  const url = `${SUPABASE_URL}/rest/v1/agent_runs?session_id=eq.${encodeURIComponent(sessionId)}&select=*&order=started_at.desc&limit=1`
+  const res = await fetch(url, { headers: headers() })
+  if (!res.ok) return null
+  const rows = await res.json()
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null
+}
+
+/** Create a new agent run */
+export async function createAgentRun(sessionId: string): Promise<AgentRun | null> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/agent_runs`, {
+    method: 'POST',
+    headers: {
+      ...headers(),
+      'Prefer': 'return=representation',
+    },
+    body: JSON.stringify({
+      session_id: sessionId,
+      status: 'running',
+      message: 'Agent started...',
+      jobs_found: 0,
+      jobs_applied: 0,
+    }),
+  })
+  if (!res.ok) return null
+  const rows = await res.json()
+  return Array.isArray(rows) ? rows[0] : rows
+}
+
+// ─── Stats ────────────────────────────────────────────────────
+
+export interface DashboardStats {
+  jobsFoundToday: number
+  appliedToday: number
+  pending: number
+  responses: number
+}
+
+/** Get dashboard stats combining scraped_jobs + applications */
+export async function getDashboardStats(sessionId: string): Promise<DashboardStats> {
+  const today = new Date().toISOString().split('T')[0]
+
+  const [apps, jobs] = await Promise.all([
+    getApplications(sessionId),
+    getScrapedJobs(sessionId),
+  ])
+
+  const jobsFoundToday = jobs.filter(j => j.date_scraped === today).length
+  const appliedToday = apps.filter(a => a.applied_at?.startsWith(today) && (a.status?.includes('Applied') || a.status?.includes('✅'))).length
+  const pending = apps.filter(a => a.status === 'Pending' || a.status?.includes('Pending') || a.status?.includes('⏳')).length
+  const responses = apps.filter(a => a.status?.includes('Response') || a.status?.includes('Interview') || a.status?.includes('Offer') || a.status?.includes('📬')).length
+
+  return { jobsFoundToday, appliedToday, pending, responses }
+}
+
+/** Legacy compat — old getApplicationStats */
 export async function getApplicationStats(sessionId: string): Promise<{
   total: number
   appliedToday: number
   pending: number
   responses: number
 }> {
-  const apps = await getApplications(sessionId)
-  const today = new Date().toISOString().split('T')[0]
+  const s = await getDashboardStats(sessionId)
   return {
-    total: apps.length,
-    appliedToday: apps.filter(a => a.applied_at?.startsWith(today) && a.status?.includes('Applied')).length,
-    pending: apps.filter(a => a.status === 'Pending' || a.status?.includes('Pending')).length,
-    responses: apps.filter(a => a.status?.includes('Response') || a.status?.includes('Interview') || a.status?.includes('Offer')).length,
+    total: s.jobsFoundToday,
+    appliedToday: s.appliedToday,
+    pending: s.pending,
+    responses: s.responses,
   }
 }
