@@ -10,7 +10,7 @@ import {
   Search, Target, ArrowRight, StopCircle,
 } from 'lucide-react'
 import {
-  getProfile, getApplications, getDashboardStats, getLatestAgentRun, createAgentRun,
+  getProfile, getApplications, getDashboardStats, getLatestAgentRun, createAgentRun, updateAgentRun,
   type UserProfile, type Application, type AgentRun, type DashboardStats,
 } from '@/lib/supabase'
 
@@ -180,16 +180,18 @@ export default function DashboardPage() {
           clearInterval(pollingRef.current)
           pollingRef.current = null
         }
-        setAgentRun(prev => prev ? { ...prev, status: 'error', message: 'Failed to trigger workflow' } : null)
+        if (run?.id) await updateAgentRun(run.id, { status: 'error', message: 'Error occurred while running agent workflow.' })
+        setAgentRun(prev => prev ? { ...prev, status: 'error', message: 'Error occurred while running agent workflow.' } : null)
         return
       }
 
-      // If it succeeds, stop polling and update status to done (if not already handled by pollData)
+      // If it succeeds, stop polling and update status to done
       if (pollingRef.current) {
         clearInterval(pollingRef.current)
         pollingRef.current = null
       }
-      setAgentRun(prev => prev ? { ...prev, status: 'done', message: 'All tasks completed.' } : null)
+      if (run?.id) await updateAgentRun(run.id, { status: 'done', message: 'All tasks completed successfully.' })
+      setAgentRun(prev => prev ? { ...prev, status: 'done', message: 'All tasks completed successfully.' } : null)
       
       // Reload stats
       await loadData(sessionId)
@@ -199,10 +201,23 @@ export default function DashboardPage() {
         clearInterval(pollingRef.current)
         pollingRef.current = null
       }
-      setAgentRun(prev => prev ? { ...prev, status: 'error', message: 'Failed to connect to workflow' } : null)
+      if (agentRun?.id) await updateAgentRun(agentRun.id, { status: 'error', message: 'Failed to connect to workflow.' })
+      setAgentRun(prev => prev ? { ...prev, status: 'error', message: 'Failed to connect to workflow.' } : null)
     } finally {
       setStarting(false)
     }
+  }
+
+  // ─── STOP AGENT ───────────────────────────────────────────
+  const stopAgent = async () => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+    if (agentRun?.id) {
+      await updateAgentRun(agentRun.id, { status: 'error', message: 'Agent stopped.' })
+    }
+    setAgentRun(prev => prev ? { ...prev, status: 'error', message: 'Agent stopped.' } : null)
   }
 
   // ─── Derived values ────────────────────────────────────────
@@ -227,32 +242,32 @@ export default function DashboardPage() {
   const getAgentDisplay = () => {
     if (!agentRun || agentRun.status === 'done' || agentRun.status === 'error') {
       return {
-        statusLabel: agentRun?.status === 'done' ? 'COMPLETED' : agentRun?.status === 'error' ? 'ERROR' : 'READY',
+        statusLabel: agentRun?.status === 'done' ? 'COMPLETED' : agentRun?.status === 'error' ? 'ERROR OCCURRED' : 'READY',
         statusColor: agentRun?.status === 'done' ? 'text-emerald-400' : agentRun?.status === 'error' ? 'text-rose-400' : 'text-emerald-400',
         dotColor: agentRun?.status === 'done' ? 'bg-emerald-400' : agentRun?.status === 'error' ? 'bg-rose-400' : 'bg-emerald-400',
         title: agentRun?.status === 'done'
           ? `Agent Complete — Found ${agentRun.jobs_found || 0} jobs, Applied to ${agentRun.jobs_applied || 0}`
           : agentRun?.status === 'error'
-          ? 'Something went wrong'
+          ? 'Error Occurred & Stopped'
           : 'Start AutoApply Agent',
         subtitle: agentRun?.status === 'done'
-          ? agentRun.message || 'All tasks completed.'
+          ? agentRun.message || 'All tasks completed successfully.'
           : agentRun?.status === 'error'
-          ? agentRun.message || 'The agent encountered an error. Try again.'
+          ? agentRun.message || 'An error occurred during workflow execution. Agent stopped.'
           : `I'll search job boards for ${(roles as string[]).slice(0, 3).join(', ') || 'your roles'} and apply automatically.`,
       }
     }
     // Active states
     return {
-      statusLabel: agentRun.status === 'scraping' ? 'SCRAPING JOBS' : agentRun.status === 'applying' ? 'APPLYING' : 'STARTING',
+      statusLabel: agentRun.status === 'scraping' ? 'SCRAPING JOBS' : agentRun.status === 'applying' ? 'APPLYING TO JOBS' : 'AGENT RUNNING',
       statusColor: 'text-indigo-400',
       dotColor: 'bg-indigo-400 animate-pulse',
       title: agentRun.status === 'scraping'
         ? `Scraping jobs... (${agentRun.jobs_found || 0} found so far)`
         : agentRun.status === 'applying'
         ? `Applying to jobs... (${agentRun.jobs_applied || 0}/${agentRun.jobs_found || 0})`
-        : 'Agent is starting...',
-      subtitle: agentRun.message || 'Working...',
+        : 'Agent Searching & Analyzing Jobs...',
+      subtitle: agentRun.message || 'Connected to job portals. Analyzing matching roles and queueing tasks.',
     }
   }
 
@@ -313,12 +328,22 @@ export default function DashboardPage() {
               </div>
 
               {/* Right: Button */}
-              <div className="shrink-0">
+              <div className="shrink-0 flex items-center gap-3">
                 {isAgentActive ? (
-                  <div className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-white/5 border border-indigo-500/30">
-                    <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
-                    <span className="text-indigo-300 font-semibold">Agent Running...</span>
-                  </div>
+                  <>
+                    <div className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-white/5 border border-indigo-500/30">
+                      <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+                      <span className="text-indigo-300 font-semibold">Working...</span>
+                    </div>
+                    <button
+                      onClick={stopAgent}
+                      title="Stop or reset agent if stuck"
+                      className="inline-flex items-center gap-2 px-5 py-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-semibold hover:bg-rose-500/20 active:scale-95 transition-all"
+                    >
+                      <StopCircle className="w-5 h-5" />
+                      Stop
+                    </button>
+                  </>
                 ) : (
                   <button
                     onClick={startAgent}

@@ -166,6 +166,19 @@ export async function createAgentRun(sessionId: string): Promise<AgentRun | null
   return Array.isArray(rows) ? rows[0] : rows
 }
 
+/** Update an agent run status/message */
+export async function updateAgentRun(id: string, updates: Partial<AgentRun>): Promise<boolean> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/agent_runs?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: {
+      ...headers(),
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify(updates),
+  })
+  return res.ok
+}
+
 // ─── Stats ────────────────────────────────────────────────────
 
 export interface DashboardStats {
