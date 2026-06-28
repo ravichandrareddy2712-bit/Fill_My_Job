@@ -93,12 +93,42 @@ export interface ScrapedJob {
   status?: string // 'Found', 'Applied', 'Skipped', 'Failed'
 }
 
-/** Get all scraped jobs for a session, ordered newest first */
+/** Get all scraped jobs and extension tasks for a session, ordered newest first */
 export async function getScrapedJobs(sessionId: string): Promise<ScrapedJob[]> {
-  const url = `${SUPABASE_URL}/rest/v1/scraped_jobs?session_id=eq.${encodeURIComponent(sessionId)}&select=*&order=date_scraped.desc,id.desc&limit=200`
-  const res = await fetch(url, { headers: headers() })
-  if (!res.ok) return []
-  return res.json()
+  const h = headers()
+  const url1 = `${SUPABASE_URL}/rest/v1/scraped_jobs?session_id=eq.${encodeURIComponent(sessionId)}&select=*&order=date_scraped.desc,id.desc&limit=200`
+  const url2 = `${SUPABASE_URL}/rest/v1/extension_tasks?session_id=eq.${encodeURIComponent(sessionId)}&select=*&order=created_at.desc,id.desc&limit=200`
+  
+  const [res1, res2] = await Promise.all([
+    fetch(url1, { headers: h }),
+    fetch(url2, { headers: h })
+  ])
+  
+  const jobs1: ScrapedJob[] = res1.ok ? await res1.json() : []
+  const tasks: any[] = res2.ok ? await res2.json() : []
+  
+  const jobs2: ScrapedJob[] = Array.isArray(tasks) ? tasks.map(t => ({
+    id: t.id,
+    session_id: t.session_id,
+    job_title: t.job_title,
+    company: t.company,
+    location: 'Remote / India',
+    portal: t.apply_link?.includes('linkedin') ? 'LinkedIn' : t.apply_link?.includes('naukri') ? 'Naukri' : t.apply_link?.includes('internshala') ? 'Internshala' : 'Job Portal',
+    apply_link: t.apply_link,
+    apply_type: t.apply_type === 'easy_apply' ? 'Easy Apply' : 'External',
+    match_score: t.match_score || 88,
+    date_scraped: t.created_at,
+    status: t.status === 'submitted' ? 'Applied' : t.status === 'failed' ? 'Failed' : 'Found'
+  })) : []
+  
+  const combined = [...jobs1, ...jobs2]
+  const seen = new Set()
+  return combined.filter(j => {
+    const key = j.apply_link || j.id
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  }).sort((a, b) => new Date(b.date_scraped || 0).getTime() - new Date(a.date_scraped || 0).getTime())
 }
 
 // ─── Applications ─────────────────────────────────────────────
@@ -197,7 +227,7 @@ export async function getDashboardStats(sessionId: string): Promise<DashboardSta
     getScrapedJobs(sessionId),
   ])
 
-  const jobsFoundToday = jobs.filter(j => j.date_scraped === today).length
+  const jobsFoundToday = jobs.filter(j => j.date_scraped?.startsWith(today) || j.date_scraped?.includes(today)).length
   const appliedToday = apps.filter(a => a.applied_at?.startsWith(today) && (a.status?.includes('Applied') || a.status?.includes('✅'))).length
   const pending = apps.filter(a => a.status === 'Pending' || a.status?.includes('Pending') || a.status?.includes('⏳')).length
   const responses = apps.filter(a => a.status?.includes('Response') || a.status?.includes('Interview') || a.status?.includes('Offer') || a.status?.includes('📬')).length
