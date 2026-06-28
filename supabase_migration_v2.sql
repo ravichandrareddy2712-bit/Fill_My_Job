@@ -63,11 +63,12 @@ ALTER TABLE users
 ALTER TABLE extension_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portal_sessions ENABLE ROW LEVEL SECURITY;
 
--- Allow anon key full access (extension uses anon key directly)
-CREATE POLICY IF NOT EXISTS "anon_all_extension_tasks" ON extension_tasks
+DROP POLICY IF EXISTS "anon_all_extension_tasks" ON extension_tasks;
+CREATE POLICY "anon_all_extension_tasks" ON extension_tasks
   FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "anon_all_portal_sessions" ON portal_sessions
+DROP POLICY IF EXISTS "anon_all_portal_sessions" ON portal_sessions;
+CREATE POLICY "anon_all_portal_sessions" ON portal_sessions
   FOR ALL USING (true) WITH CHECK (true);
 
 -- ============================================================
