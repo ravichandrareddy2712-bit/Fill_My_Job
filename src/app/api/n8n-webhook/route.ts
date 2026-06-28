@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 const N8N_WEBHOOK_URL =
   process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL ||
-  'https://ramanreddy.app.n8n.cloud/webhook/fmj-autoapply-v2'
+  'https://ramanreddy.app.n8n.cloud/webhook/autoapply-start'
 
 export async function POST(request: Request) {
   try {
